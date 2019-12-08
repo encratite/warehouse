@@ -3,12 +3,14 @@ import * as mongoose from 'mongoose';
 import * as http from 'http';
 
 import { Configuration } from './configuration.js';
+import { Database } from './database.js';
 
 export class Warehouse {
 	configuration: Configuration;
 	app: express.Application;
 	server: http.Server;
-	db: mongoose.Connection;
+	connection: mongoose.Connection;
+	database: Database;
 
 	constructor(configuration: Configuration) {
 		this.configuration = configuration;
@@ -34,9 +36,9 @@ export class Warehouse {
 			this.app = null;
 			this.server = null;
 		}
-		if (this.db != null) {
-			this.db.close();
-			this.db = null;
+		if (this.connection != null) {
+			this.connection.close();
+			this.connection = null;
 		}
 	}
 
@@ -53,12 +55,8 @@ export class Warehouse {
 		const options: mongoose.ConnectionOptions = {
 			useNewUrlParser: true
 		};
-		const connection = await mongoose.connect(this.configuration.mongoDbUri, options, (error) => {
-			if (error != null) {
-				throw error;
-			}
-		});
-		this.db = connection.connection;
+		this.connection = await mongoose.createConnection(this.configuration.mongoDbUri, options);
+		this.database = new Database(this.connection);
 	}
 
 	index(request: express.Request, response: express.Response) {
