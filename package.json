@@ -1,0 +1,23 @@
+{
+  "name": "warehouse",
+  "version": "0.1",
+  "description": "A warehouse is a commercial building for storage of goods.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "encratite",
+  "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/encratite/warehouse.git"
+  },
+  "type": "module",
+  "dependencies": {
+    "@types/express": "^4.17.2",
+    "@types/mongoose": "^5.5.32",
+    "express": "^4.17.1",
+    "mongoose": "^5.7.13",
+    "typescript": "^3.7.3"
+  }
+}
