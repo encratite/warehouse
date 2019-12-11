@@ -1,6 +1,6 @@
 {
   "name": "warehouse",
-  "version": "0.1",
+  "version": "0.1.0",
   "description": "A warehouse is a commercial building for storage of goods.",
   "main": "app.js",
   "scripts": {
