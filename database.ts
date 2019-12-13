@@ -9,6 +9,37 @@ export interface User extends mongoose.Document {
 	lastLogin: Date;
 }
 
+export interface Session extends mongoose.Document {
+	userId: mongoose.Types.ObjectId;
+	sessionId: Buffer;
+	address: string;
+	userAgent: string;
+	created: Date;
+	lastAccess: Date;
+}
+
+export interface Subscription extends mongoose.Document {
+	userId: mongoose.Types.ObjectId;
+	pattern: string;
+	category: string;
+	matches: number;
+	created: Date;
+	lastMatch: Date;
+}
+
+export interface Download extends mongoose.Document {
+	userId: mongoose.Types.ObjectId;
+	time: Date;
+	name: string;
+	size: number;
+	manual: boolean;
+}
+
+const userModelName = 'user';
+const sessionModelName = 'session';
+const subscriptionModelName = 'subscription';
+const downloadModelName = 'download';
+
 const userSchema = new mongoose.Schema({
 	name: {
 		type: String,
@@ -29,25 +60,18 @@ const userSchema = new mongoose.Schema({
 	},
 	created: {
 		type: Date,
-		required: true
+		required: true,
+		default: Date.now
 	},
 	lastLogin: {
 		type: Date
 	}
 });
 
-export interface Session extends mongoose.Document {
-	userId: number;
-	sessionId: Buffer;
-	address: string;
-	userAgent: string;
-	created: Date;
-	lastAccess: Date;
-}
-
 const sessionSchema = new mongoose.Schema({
 	userId: {
-		type: Number,
+		type: mongoose.Schema.Types.ObjectId,
+		ref: userModelName,
 		required: true
 	},
 	sessionId: {
@@ -65,27 +89,21 @@ const sessionSchema = new mongoose.Schema({
 	},
 	created: {
 		type: Date,
-		required: true
+		required: true,
+		default: Date.now
 	},
 	lastAccess: {
 		type: Date,
-		required: true
+		required: true,
+		default: Date.now
 	}
 });
-sessionSchema.index({ userId: 1, sessionId: 1 }, { unique: true });
-
-export interface Subscription extends mongoose.Document {
-	userId: number;
-	pattern: string;
-	category: string;
-	matches: number;
-	created: Date;
-	lastMatch: Date;
-}
+sessionSchema.index({ userId: 1, sessionId: 1 });
 
 const subscriptionSchema = new mongoose.Schema({
 	userId: {
-		type: Number,
+		type: mongoose.Schema.Types.ObjectId,
+		ref: userModelName,
 		required: true,
 		index: true
 	},
@@ -98,34 +116,30 @@ const subscriptionSchema = new mongoose.Schema({
 	},
 	matches: {
 		type: Number,
-		required: true
+		required: true,
+		default: 0
 	},
 	created: {
 		type: Date,
-		required: true
+		required: true,
+		default: Date.now
 	},
 	lastMatch: {
 		type: Date
 	}
 });
 
-export interface Download extends mongoose.Document {
-	userId: number;
-	time: Date;
-	name: string;
-	size: number;
-	manual: boolean;
-}
-
 const downloadSchema = new mongoose.Schema({
 	userId: {
-		type: Number,
+		type: mongoose.Schema.Types.ObjectId,
+		ref: userModelName,
 		required: true,
 		index: true
 	},
 	time: {
 		type: Date,
-		required: true
+		required: true,
+		default: Date.now
 	},
 	name: {
 		type: String,
@@ -168,9 +182,48 @@ export class Database {
 	}
 
 	initializeModels() {
-		this.user = this.connection.model<User>("user", userSchema);
-		this.session = this.connection.model<Session>("session", sessionSchema);
-		this.subscription = this.connection.model<Subscription>("subscription", subscriptionSchema);
-		this.download = this.connection.model<Download>("download", downloadSchema);
+		this.user = this.connection.model<User>(userModelName, userSchema);
+		this.session = this.connection.model<Session>(sessionModelName, sessionSchema);
+		this.subscription = this.connection.model<Subscription>(subscriptionModelName, subscriptionSchema);
+		this.download = this.connection.model<Download>(downloadModelName, downloadSchema);
+	}
+
+	newUser(name: string, salt: Buffer, password: Buffer, isAdmin: boolean): User {
+		return new this.user({
+			name: name,
+			salt: salt,
+			password: password,
+			isAdmin: isAdmin
+		});
+	}
+
+	newSession(userId: mongoose.Types.ObjectId, sessionId: Buffer, address: string, userAgent: string): Session {
+		const created = new Date();
+		const lastAccess = created;
+		return new this.session({
+			userId: userId,
+			sessionId: sessionId,
+			address: address,
+			userAgent: userAgent,
+			created: created,
+			lastAccess: lastAccess
+		});
+	}
+
+	newSubscription(userId: mongoose.Types.ObjectId, pattern: string, category: string): Subscription {
+		return new this.subscription({
+			userId: userId,
+			pattern: pattern,
+			category: category
+		});
+	}
+
+	newDownload(userId: mongoose.Types.ObjectId, name: string, size: number, manual: boolean) {
+		return new this.download({
+			userId: userId,
+			name: name,
+			size: size,
+			manual: manual
+		});
 	}
 }
