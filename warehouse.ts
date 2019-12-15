@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import http from 'http';
 
 import { Configuration } from './configuration.js';
-import { Database } from './database.js';
+import { Database, User } from './database.js';
 
 export class Warehouse {
 	configuration: Configuration;
@@ -53,6 +53,18 @@ export class Warehouse {
 	async initializeDatabase() {
 		this.database = new Database();
 		await this.database.connect(this.configuration.mongoDbUri);
+	}
+
+	async createUser(username: string, password: string, isAdmin: boolean): Promise<User> {
+		throw new Error('Not implemented.');
+	}
+
+	async deleteUser(username: string) {
+		throw new Error('Not implemented.');
+	}
+
+	generatePassword(): string {
+		throw new Error('Not implemented.');
 	}
 
 	index(request: express.Request, response: express.Response) {
