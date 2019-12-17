@@ -1,6 +1,6 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import http from 'http';
+import crypto from 'crypto';
 
 import { Configuration } from './configuration.js';
 import { Database, User } from './database.js';
@@ -55,7 +55,7 @@ export class Warehouse {
 		await this.database.connect(this.configuration.mongoDbUri);
 	}
 
-	async createUser(username: string, password: string, isAdmin: boolean): Promise<User> {
+	async createUser(username: string, password: string, isAdmin: boolean) {
 		throw new Error('Not implemented.');
 	}
 
@@ -64,7 +64,25 @@ export class Warehouse {
 	}
 
 	generatePassword(): string {
-		throw new Error('Not implemented.');
+		const characters = this.getPasswordCharacters();
+		let password = '';
+		for (var i = 0; i < 32; i++) {
+			const index = Math.floor(Math.random() * characters.length);
+			password += characters.substring(index, index + 1);
+		}
+		return password;
+	}
+
+	getPasswordCharacters(): string {
+		const pattern = /[A-Za-z0-9]/;
+		let characters = '';
+		for (let i = 0; i < 256; i++) {
+			const character = String.fromCharCode(i);
+			if (pattern.exec(character) != null) {
+				characters += character;
+			}
+		}
+		return characters;
 	}
 
 	index(request: express.Request, response: express.Response) {
