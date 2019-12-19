@@ -1,6 +1,6 @@
 import express from 'express';
 import http from 'http';
-import crypto from 'crypto';
+import crypto, { ScryptOptions } from 'crypto';
 
 import { Configuration } from './configuration.js';
 import { Database, User } from './database.js';
@@ -56,11 +56,28 @@ export class Warehouse {
 	}
 
 	async createUser(username: string, password: string, isAdmin: boolean) {
-		throw new Error('Not implemented.');
+		const saltLength = 32;
+		const keyLength = 64;
+		const scryptOptions: ScryptOptions = {
+			p: 4
+		};
+		const salt = crypto.randomBytes(saltLength);
+		const passwordHash = await new Promise<Buffer>((resolve, reject) => {
+			crypto.scrypt(password, salt, keyLength, scryptOptions, (error, derivedKey) => {
+				if (error != null) {
+					throw error;
+				}
+				resolve(derivedKey);
+			});
+		});
+		const user = this.database.newUser(name, salt, passwordHash, isAdmin);
+		await user.save();
 	}
 
 	async deleteUser(username: string) {
-		throw new Error('Not implemented.');
+		await this.database.user.deleteOne({
+			name: username
+		});
 	}
 
 	generatePassword(): string {
