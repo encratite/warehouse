@@ -1,9 +1,10 @@
 import express from 'express';
 import http from 'http';
-import crypto, { ScryptOptions } from 'crypto';
+import crypto from 'crypto';
 
-import { Configuration } from './configuration.js';
-import { Database, User } from './database.js';
+import { Configuration, deobfuscate } from './configuration.js';
+import { Database } from './database.js';
+import * as common from './common.js';
 
 export class Warehouse {
 	configuration: Configuration;
@@ -13,6 +14,7 @@ export class Warehouse {
 
 	constructor(configuration: Configuration) {
 		this.configuration = configuration;
+		deobfuscate(this.configuration);
 	}
 
 	async start() {
@@ -43,11 +45,33 @@ export class Warehouse {
 
 	async initializeWeb() {
 		this.app = express();
-		this.app.get('/', this.index.bind(this));
+		this.addMiddleware();
+		this.addRoutes();
 		await new Promise((resolve, reject) => {
 			this.server = this.app.listen(this.configuration.listenPort, this.configuration.listenHostname, resolve);
 			this.server.on('error', reject);
 		});
+	}
+
+	corsMiddleware(request: express.Request, response: express.Response, next: () => void) {
+		response.header('Access-Control-Allow-Origin', '*');
+		response.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+		next();
+	}
+
+	addMiddleware() {
+		const jsonMiddleware = express.json();
+		this.app.use(jsonMiddleware);
+		const pattern = /--inspect-brk=\d+/;
+		const command = process.execArgv.join(' ');
+		const debugging = pattern.test(command);
+		if (debugging) {
+			this.app.use(this.corsMiddleware);
+		}
+	}
+
+	addRoutes() {
+		this.app.post('/login', this.login.bind(this));
 	}
 
 	async initializeDatabase() {
@@ -57,11 +81,17 @@ export class Warehouse {
 
 	async createUser(username: string, password: string, isAdmin: boolean) {
 		const saltLength = 32;
+		const salt = crypto.randomBytes(saltLength);
+		const passwordHash = await this.hashPassword(password, salt);
+		const user = this.database.newUser(name, salt, passwordHash, isAdmin);
+		await user.save();
+	}
+
+	async hashPassword(password: string, salt: Buffer): Promise<Buffer> {
 		const keyLength = 64;
-		const scryptOptions: ScryptOptions = {
+		const scryptOptions: crypto.ScryptOptions = {
 			p: 4
 		};
-		const salt = crypto.randomBytes(saltLength);
 		const passwordHash = await new Promise<Buffer>((resolve, reject) => {
 			crypto.scrypt(password, salt, keyLength, scryptOptions, (error, derivedKey) => {
 				if (error != null) {
@@ -70,8 +100,7 @@ export class Warehouse {
 				resolve(derivedKey);
 			});
 		});
-		const user = this.database.newUser(name, salt, passwordHash, isAdmin);
-		await user.save();
+		return passwordHash;
 	}
 
 	async deleteUser(username: string) {
@@ -80,7 +109,11 @@ export class Warehouse {
 		});
 	}
 
-	index(request: express.Request, response: express.Response) {
-		response.send('Test.');
+	async login(request: express.Request, response: express.Response) {
+		const loginRequest = <common.LoginRequest>request.body;
+		this.database.user.findOne({ username: loginRequest.username }, (error, user) => {
+			console.log(error, user);
+		});
+		throw new Error('Not implemented.');
 	}
 }

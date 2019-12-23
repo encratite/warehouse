@@ -33,7 +33,7 @@ function main() {
 	if (serviceArgument === true) {
 		startService();
 	}
-	if (obfuscateArgument === true) {
+	else if (obfuscateArgument === true) {
 		obfuscateConfiguration();
 	}
 	else if (createArgument != null) {
@@ -66,8 +66,8 @@ async function obfuscateConfiguration() {
 	let writeConfiguration = false;
 	if (configuration.mongoDbUri != null && configuration.mongoDbUriSecure == null) {
 		const pattern = /^mongodb:\/\/.+?:.+?@/;
-		const match = pattern.exec(configuration.mongoDbUri);
-		if (match != null) {
+		const match = pattern.test(configuration.mongoDbUri);
+		if (match === true) {
 			const obfuscatedMongoDbUri = obfuscation.obfuscate(configuration.mongoDbUri);
 			configuration.mongoDbUri = null;
 			configuration.mongoDbUriSecure = obfuscatedMongoDbUri;

@@ -1,5 +1,7 @@
 import fs from 'fs';
 
+import * as obfuscation from './obfuscation.js';
+
 export interface Configuration {
 	listenPort: number;
 	listenHostname: string;
@@ -32,4 +34,10 @@ export async function write(configuration: Configuration) {
 			resolve();
 		});
 	});
+}
+
+export function deobfuscate(configuration: Configuration) {
+	if (configuration.mongoDbUriSecure != null) {
+		configuration.mongoDbUri = obfuscation.deobfuscate(configuration.mongoDbUriSecure);
+	}
 }
