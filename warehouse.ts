@@ -1,9 +1,10 @@
 import express from 'express';
 import http from 'http';
 import crypto from 'crypto';
+import mongodb from 'mongodb';
 
 import { Configuration, deobfuscate } from './configuration.js';
-import { Database } from './database.js';
+import { Database, User } from './database.js';
 import * as common from './common.js';
 
 export class Warehouse {
@@ -83,8 +84,18 @@ export class Warehouse {
 		const saltLength = 32;
 		const salt = crypto.randomBytes(saltLength);
 		const passwordHash = await this.hashPassword(password, salt);
-		const user = this.database.newUser(name, salt, passwordHash, isAdmin);
-		await user.save();
+		const user = this.database.newUser(username, salt, passwordHash, isAdmin);
+		try {
+			await user.save();
+		}
+		catch (error) {
+			if (error instanceof mongodb.MongoError && error.code === 11000) {
+				throw new Error('Unable to create user. Username already in use.');
+			}
+			else {
+				throw error;
+			}
+		}
 	}
 
 	async hashPassword(password: string, salt: Buffer): Promise<Buffer> {
@@ -103,17 +114,36 @@ export class Warehouse {
 		return passwordHash;
 	}
 
-	async deleteUser(username: string) {
-		await this.database.user.deleteOne({
-			name: username
+	async deleteUser(username: string): Promise<boolean> {
+		const result = await this.database.user.deleteOne({ name: username }, error => {
+			if (error != null) {
+				throw error;
+			}
 		});
+		const success = result.deletedCount > 0;
+		return success;
 	}
 
 	async login(request: express.Request, response: express.Response) {
 		const loginRequest = <common.LoginRequest>request.body;
-		this.database.user.findOne({ username: loginRequest.username }, (error, user) => {
-			console.log(error, user);
+		const user = await new Promise<User>((resolve, reject) => {
+			this.database.user.findOne({ username: loginRequest.username }, (error, user) => {
+				if (error != null) {
+					throw error;
+				}
+				resolve(user);
+			});
 		});
-		throw new Error('Not implemented.');
+		let success = false;
+		if (user != null) {
+			const passwordHash = await this.hashPassword(loginRequest.password, user.salt);
+			if (Buffer.compare(passwordHash, user.password) === 0) {
+				success = true;
+			}
+		}
+		const loginResponse: common.LoginResponse = {
+			success: success
+		};
+		response.send(loginResponse);
 	}
 }

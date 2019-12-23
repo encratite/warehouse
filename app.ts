@@ -72,16 +72,22 @@ async function obfuscateConfiguration() {
 			configuration.mongoDbUri = null;
 			configuration.mongoDbUriSecure = obfuscatedMongoDbUri;
 			writeConfiguration = true;
+			console.log('Obfuscating MongoDB connection string.');
 		}
 	}
 	if (writeConfiguration === true) {
 		await configurationFile.write(configuration);
 	}
+	else {
+		console.log('Nothing to obfuscate.');
+	}
 }
 
 async function createUser(username: string, isAdmin: boolean) {
+	let warehouse: Warehouse;
 	try {
-		const warehouse = await getWarehouse();
+		warehouse = await getWarehouse();
+		await warehouse.initializeDatabase();
 		const password = passwordGenerator.generatePassword();
 		await warehouse.createUser(username, password, isAdmin);
 		console.log(`Created user "${username}" with password "${password}".`);
@@ -89,16 +95,29 @@ async function createUser(username: string, isAdmin: boolean) {
 	catch (error) {
 		onError(error);
 	}
+	finally {
+		warehouse.stop();
+	}
 }
 
 async function deleteUser(username: string) {
+	let warehouse: Warehouse;
 	try {
-		const warehouse = await getWarehouse();
-		await warehouse.deleteUser(username);
-		console.log(`Deleted user "${username}".`);
+		warehouse = await getWarehouse();
+		await warehouse.initializeDatabase();
+		const success = await warehouse.deleteUser(username);
+		if (success === true) {
+			console.log(`Deleted user "${username}".`);
+		}
+		else {
+			console.log(`Unable to find user "${username}".`);
+		}
 	}
 	catch (error) {
 		onError(error);
+	}
+	finally {
+		warehouse.stop();
 	}
 }
 

@@ -25,10 +25,10 @@ export async function read(): Promise<Configuration> {
 }
 
 export async function write(configuration: Configuration) {
-	const configurationJson = JSON.stringify(configuration);
+	const configurationJson = JSON.stringify(configuration, null, 4);
 	await new Promise((resolve, reject) => {
 		fs.writeFile(configurationPath, configurationJson, (error) => {
-			if (error == null) {
+			if (error != null) {
 				throw error;
 			}
 			resolve();
