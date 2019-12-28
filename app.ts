@@ -84,26 +84,16 @@ async function obfuscateConfiguration() {
 }
 
 async function createUser(username: string, isAdmin: boolean) {
-	let warehouse: Warehouse;
-	try {
-		warehouse = await getWarehouse();
+	withWarehouse(async warehouse => {
 		await warehouse.initializeDatabase();
 		const password = passwordGenerator.generatePassword();
 		await warehouse.createUser(username, password, isAdmin);
 		console.log(`Created user "${username}" with password "${password}".`);
-	}
-	catch (error) {
-		onError(error);
-	}
-	finally {
-		warehouse.stop();
-	}
+	});
 }
 
 async function deleteUser(username: string) {
-	let warehouse: Warehouse;
-	try {
-		warehouse = await getWarehouse();
+	withWarehouse(async warehouse => {
 		await warehouse.initializeDatabase();
 		const success = await warehouse.deleteUser(username);
 		if (success === true) {
@@ -112,13 +102,7 @@ async function deleteUser(username: string) {
 		else {
 			console.log(`Unable to find user "${username}".`);
 		}
-	}
-	catch (error) {
-		onError(error);
-	}
-	finally {
-		warehouse.stop();
-	}
+	});
 }
 
 function printHelp() {
@@ -146,6 +130,23 @@ async function getWarehouse(): Promise<Warehouse> {
 	const configuration = await configurationFile.read();
 	const warehouse = new Warehouse(configuration);
 	return warehouse;
+}
+
+async function withWarehouse(handler: (Warehouse) => Promise<void>) {
+	let warehouse: Warehouse = null;
+	try {
+		warehouse = await getWarehouse();
+		await handler(warehouse);
+	}
+	catch (error) {
+		onError(error);
+	}
+	finally {
+		if (warehouse != null) {
+			warehouse.stop();
+			warehouse = null;
+		}
+	}
 }
 
 function onError(error: any) {

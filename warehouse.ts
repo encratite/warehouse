@@ -127,7 +127,7 @@ export class Warehouse {
 	async login(request: express.Request, response: express.Response) {
 		const loginRequest = <common.LoginRequest>request.body;
 		const user = await new Promise<User>((resolve, reject) => {
-			this.database.user.findOne({ username: loginRequest.username }, (error, user) => {
+			this.database.user.findOne({ name: loginRequest.username }, (error, user) => {
 				if (error != null) {
 					throw error;
 				}
