@@ -73,7 +73,8 @@ const sessionSchema = new mongoose.Schema({
 	userId: {
 		type: mongoose.Schema.Types.ObjectId,
 		ref: userModelName,
-		required: true
+		required: true,
+		index: true
 	},
 	sessionId: {
 		type: Buffer,
@@ -85,8 +86,7 @@ const sessionSchema = new mongoose.Schema({
 		required: true
 	},
 	userAgent: {
-		type: String,
-		required: true
+		type: String
 	},
 	created: {
 		type: Date,
@@ -99,7 +99,7 @@ const sessionSchema = new mongoose.Schema({
 		default: Date.now
 	}
 });
-sessionSchema.index({ userId: 1, sessionId: 1 });
+sessionSchema.index({ sessionId: 1, userAgent: 1 });
 
 const subscriptionSchema = new mongoose.Schema({
 	userId: {

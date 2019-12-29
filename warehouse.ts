@@ -8,6 +8,8 @@ import { Database, User } from './database.js';
 import * as common from './common.js';
 
 export class Warehouse {
+	sessionCookieName = 'session';
+
 	configuration: Configuration;
 	app: express.Application;
 	server: http.Server;
@@ -89,13 +91,17 @@ export class Warehouse {
 			await user.save();
 		}
 		catch (error) {
-			if (error instanceof mongodb.MongoError && error.code === 11000) {
+			if (this.isDuplicateKeyError(error) === true) {
 				throw new Error('Unable to create user. Username already in use.');
 			}
 			else {
 				throw error;
 			}
 		}
+	}
+
+	isDuplicateKeyError(error): boolean {
+		return error instanceof mongodb.MongoError && error.code === 11000;
 	}
 
 	async hashPassword(password: string, salt: Buffer): Promise<Buffer> {
@@ -138,6 +144,7 @@ export class Warehouse {
 		if (user != null) {
 			const passwordHash = await this.hashPassword(loginRequest.password, user.salt);
 			if (Buffer.compare(passwordHash, user.password) === 0) {
+				await this.createSessionWithRetry(request, response, user);
 				success = true;
 			}
 		}
@@ -145,5 +152,54 @@ export class Warehouse {
 			success: success
 		};
 		response.send(loginResponse);
+	}
+
+	getAddress(request: express.Request): string {
+		return <string>request.headers['x-forwarded-for'] || request.connection.remoteAddress;
+	}
+
+	async createSessionWithRetry(request: express.Request, response: express.Response, user: User) {
+		while (true) {
+			try {
+				await this.createSession(request, response, user);
+				break;
+			}
+			catch (error) {
+				if (this.isDuplicateKeyError(error) === false) {
+					throw error;
+				}
+			}
+		}
+	}
+
+	async createSession(request: express.Request, response: express.Response, user: User) {
+		const sessionIdSize = 32;
+		const cookieMaxAge = 30 * 24 * 60 * 60;
+		const sessionId = crypto.randomBytes(sessionIdSize);
+		const address = this.getAddress(request);
+		const userAgent = request.headers['user-agent'];
+		const session = this.database.newSession(user._id, sessionId, address, userAgent);
+		await session.save();
+		await this.deleteOldSessions(user);
+		const sessionIdString = sessionId.toString('base64');
+		const cookieOptions: express.CookieOptions = {
+			maxAge: cookieMaxAge,
+			httpOnly: true
+		};
+		response.cookie(this.sessionCookieName, sessionIdString, cookieOptions);
+	}
+
+	async deleteOldSessions(user: User) {
+		const maximumSessions = 3;
+		const findQuery = this.database.session.find({ userId: user._id });
+		const userSessions = await findQuery.exec();
+		const sessionsToDelete = userSessions.length - maximumSessions;
+		if (sessionsToDelete > 0) {
+			userSessions.sort((a, b) => b.lastAccess.getTime() - a.lastAccess.getTime());
+			const userSessionsToDelete = userSessions.filter((_, i) => i < sessionsToDelete)
+			const userSessionIds = userSessionsToDelete.map(userSession => userSession._id);
+			const deleteQuery = this.database.session.deleteMany({ id: { $in: userSessionIds } });
+			await deleteQuery.exec();
+		}
 	}
 }
