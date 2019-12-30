@@ -4,11 +4,20 @@ import crypto from 'crypto';
 import mongodb from 'mongodb';
 
 import { Configuration, deobfuscate } from './configuration.js';
-import { Database, User } from './database.js';
+import { Database, User, Session } from './database.js';
 import * as common from './common.js';
 
+interface SessionRequest extends express.Request {
+	user: User;
+}
+
 export class Warehouse {
-	sessionCookieName = 'session';
+	static readonly loginPath = '/login';
+	static readonly validateSessionPath = '/validate-session';
+
+	static readonly sessionCookieName = 'session';
+	static readonly sessionIdEncoding = 'base64';
+	static readonly sessionMaxAge = 30 * 24 * 60 * 60;
 
 	configuration: Configuration;
 	app: express.Application;
@@ -56,12 +65,6 @@ export class Warehouse {
 		});
 	}
 
-	corsMiddleware(request: express.Request, response: express.Response, next: () => void) {
-		response.header('Access-Control-Allow-Origin', '*');
-		response.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-		next();
-	}
-
 	addMiddleware() {
 		const jsonMiddleware = express.json();
 		this.app.use(jsonMiddleware);
@@ -71,10 +74,38 @@ export class Warehouse {
 		if (debugging) {
 			this.app.use(this.corsMiddleware);
 		}
+		this.app.use(this.sessionMiddleware);
+	}
+
+	corsMiddleware(request: express.Request, response: express.Response, next: () => void) {
+		response.header('Access-Control-Allow-Origin', '*');
+		response.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+		next();
+	}
+
+	async sessionMiddleware(request: express.Request, response: express.Response, next: () => void) {
+		if (
+			request.path !== Warehouse.loginPath &&
+			request.path !== Warehouse.validateSessionPath
+		) {
+			const user = await this.getSessionUser(request);
+			if (user == null) {
+				const errorResponse: common.ErrorResponse = {
+					error: 'You need an active session to perform this operation.'
+				};
+				response.status(500);
+				response.send(errorResponse);
+				return;
+			}
+			const sessionRequest = <SessionRequest>request;
+			sessionRequest.user = user;
+		}
+		next();
 	}
 
 	addRoutes() {
-		this.app.post('/login', this.login.bind(this));
+		this.app.post(Warehouse.loginPath, this.login.bind(this));
+		this.app.post(Warehouse.validateSessionPath, this.validateSession.bind(this));
 	}
 
 	async initializeDatabase() {
@@ -154,8 +185,21 @@ export class Warehouse {
 		response.send(loginResponse);
 	}
 
+	async validateSession(request: express.Request, response: express.Response) {
+		const user = await this.getSessionUser(request);
+		const valid = user != null;
+		const validateSessionResponse: common.ValidateSessionResponse = {
+			valid: valid
+		};
+		response.send(validateSessionResponse);
+	}
+
 	getAddress(request: express.Request): string {
 		return <string>request.headers['x-forwarded-for'] || request.connection.remoteAddress;
+	}
+
+	getUserAgent(request: express.Request): string {
+		return request.headers['user-agent'];
 	}
 
 	async createSessionWithRetry(request: express.Request, response: express.Response, user: User) {
@@ -174,32 +218,84 @@ export class Warehouse {
 
 	async createSession(request: express.Request, response: express.Response, user: User) {
 		const sessionIdSize = 32;
-		const cookieMaxAge = 30 * 24 * 60 * 60;
 		const sessionId = crypto.randomBytes(sessionIdSize);
 		const address = this.getAddress(request);
-		const userAgent = request.headers['user-agent'];
+		const userAgent = this.getUserAgent(request);
 		const session = this.database.newSession(user._id, sessionId, address, userAgent);
 		await session.save();
 		await this.deleteOldSessions(user);
-		const sessionIdString = sessionId.toString('base64');
+		user.lastLogin = new Date();
+		await user.save();
+		const sessionIdString = sessionId.toString(Warehouse.sessionIdEncoding);
 		const cookieOptions: express.CookieOptions = {
-			maxAge: cookieMaxAge,
+			maxAge: Warehouse.sessionMaxAge,
 			httpOnly: true
 		};
-		response.cookie(this.sessionCookieName, sessionIdString, cookieOptions);
+		response.cookie(Warehouse.sessionCookieName, sessionIdString, cookieOptions);
 	}
 
 	async deleteOldSessions(user: User) {
 		const maximumSessions = 3;
-		const findQuery = this.database.session.find({ userId: user._id });
-		const userSessions = await findQuery.exec();
+		const userSessions = await this.database.session.find({
+			userId: user._id
+		});
 		const sessionsToDelete = userSessions.length - maximumSessions;
 		if (sessionsToDelete > 0) {
 			userSessions.sort((a, b) => b.lastAccess.getTime() - a.lastAccess.getTime());
 			const userSessionsToDelete = userSessions.filter((_, i) => i < sessionsToDelete)
 			const userSessionIds = userSessionsToDelete.map(userSession => userSession._id);
-			const deleteQuery = this.database.session.deleteMany({ id: { $in: userSessionIds } });
-			await deleteQuery.exec();
+			await this.database.session.deleteMany({
+				id: {
+					$in: userSessionIds
+				}
+			});
 		}
 	}
+
+	async getSessionUser(request: express.Request): Promise<User> {
+		if (request.cookies == null) {
+			return null;
+		}
+		const sessionIdString = <string>request.cookies[Warehouse.sessionCookieName];
+		if (sessionIdString == null) {
+			return null;
+		}
+		let sessionId: Buffer;
+		try {
+			sessionId = Buffer.from(sessionIdString, Warehouse.sessionIdEncoding);
+		}
+		catch {
+			return null;
+		}
+		const userAgent = this.getUserAgent(request);
+		const session = await this.database.session.findOne({
+			sessionId: sessionId,
+			userAgent: userAgent
+		});
+		if (session == null) {
+			return null;
+		}
+		const now = new Date();
+		const sessionAge = (session.lastAccess.getTime() - now.getTime()) / 1000;
+		if (sessionAge >= Warehouse.sessionMaxAge) {
+			await this.deleteSession(session);
+			return null;
+		}
+		const user = await this.database.user.findOne({
+			id: session.userId
+		});
+		if (user == null) {
+			await this.deleteSession(session);
+			return null;
+		}
+		session.lastAccess = now;
+		await session.save();
+		return user;
+	}
+
+	async deleteSession(session: Session) {
+		await this.database.session.deleteOne({
+			id: session._id
+		});
+	};
 }
