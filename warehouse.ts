@@ -2,6 +2,7 @@ import express from 'express';
 import http from 'http';
 import crypto from 'crypto';
 import mongodb from 'mongodb';
+import cookie from 'cookie';
 
 import * as configurationFile from './configuration.js';
 import { Database, User, Session } from './database.js';
@@ -14,14 +15,15 @@ interface SessionRequest extends express.Request {
 export class Warehouse {
 	static readonly cryptoSaltLength = 32;
 	static readonly cryptoKeyLength = 64;
-	static readonly cryptoParallelism = 4;
+	static readonly cryptoParallelization = 4;
 
 	static readonly loginPath = '/login';
 	static readonly validateSessionPath = '/validate-session';
 
 	static readonly sessionCookieName = 'session';
 	static readonly sessionIdEncoding = 'base64';
-	static readonly sessionIdSize = 32;
+	static readonly sessionIdLength = 32;
+	// Maximum age of sessions, in seconds.
 	static readonly sessionMaxAge = 30 * 24 * 60 * 60;
 	static readonly maximumSessionsPerUser = 3;
 
@@ -74,27 +76,18 @@ export class Warehouse {
 	addMiddleware() {
 		const jsonMiddleware = express.json();
 		this.app.use(jsonMiddleware);
-		const pattern = /--inspect-brk=\d+/;
-		const command = process.execArgv.join(' ');
-		const debugging = pattern.test(command);
-		if (debugging) {
-			this.app.use(this.corsMiddleware);
-		}
-		this.app.use(this.referrerMiddleware);
-		this.app.use(this.sessionMiddleware);
+		this.app.use(this.originMiddleware.bind(this));
+		this.app.use(this.sessionMiddleware.bind(this));
 	}
 
-	corsMiddleware(request: express.Request, response: express.Response, next: () => void) {
-		response.header('Access-Control-Allow-Origin', '*');
-		response.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-		next();
-	}
-
-	referrerMiddleware(request: express.Request, response: express.Response, next: () => void) {
-		const referrer = this.getReferrer(request);
-		if (referrer != null && referrer !== this.configuration.listenHostname) {
-			this.sendErrorResponse('Invalid referrer.', response);
-			return;
+	originMiddleware(request: express.Request, response: express.Response, next: () => void) {
+		const origin = <string>request.headers.origin;
+		if (origin != null) {
+			const originUrl = new URL(origin);
+			if (originUrl.host !== this.configuration.listenHostname) {
+				this.sendErrorResponse('Invalid request origin.', response);
+				return;
+			}
 		}
 		next();
 	}
@@ -152,12 +145,14 @@ export class Warehouse {
 	}
 
 	isDuplicateKeyError(error): boolean {
+		// This exception is raised in case of unique index constraints having been violated.
 		return error instanceof mongodb.MongoError && error.code === 11000;
 	}
 
 	async hashPassword(password: string, salt: Buffer): Promise<Buffer> {
+		// Use default CPU/memory cost and blocksize parameters but increase parallelization.
 		const scryptOptions: crypto.ScryptOptions = {
-			p: Warehouse.cryptoParallelism
+			p: Warehouse.cryptoParallelization
 		};
 		const passwordHash = await new Promise<Buffer>((resolve, reject) => {
 			crypto.scrypt(password, salt, Warehouse.cryptoKeyLength, scryptOptions, (error, derivedKey) => {
@@ -214,20 +209,18 @@ export class Warehouse {
 	}
 
 	getAddress(request: express.Request): string {
-		return <string>request.headers['x-forwarded-for'] || request.connection.remoteAddress;
+		// nginx requires a corresponding X-Real-IP header for the proxy_pass.
+		return <string>request.headers['x-real-ip'] || request.connection.remoteAddress;
 	}
 
 	getUserAgent(request: express.Request): string {
 		return request.headers['user-agent'];
 	}
 
-	getReferrer(request: express.Request): string {
-		return request.headers['referer'];
-	}
-
 	async createSessionWithRetry(request: express.Request, response: express.Response, user: User) {
 		while (true) {
 			try {
+				// Keep on generating sessions until a unique session ID has been found.
 				await this.createSession(request, response, user);
 				break;
 			}
@@ -240,7 +233,7 @@ export class Warehouse {
 	}
 
 	async createSession(request: express.Request, response: express.Response, user: User) {
-		const sessionId = crypto.randomBytes(Warehouse.sessionIdSize);
+		const sessionId = crypto.randomBytes(Warehouse.sessionIdLength);
 		const address = this.getAddress(request);
 		const userAgent = this.getUserAgent(request);
 		const session = this.database.newSession(user._id, sessionId, address, userAgent);
@@ -274,10 +267,12 @@ export class Warehouse {
 	}
 
 	async getSessionUser(request: express.Request): Promise<User> {
-		if (request.cookies == null) {
+		const requestCookies = request.headers.cookie;
+		if (requestCookies == null) {
 			return null;
 		}
-		const sessionIdString = <string>request.cookies[Warehouse.sessionCookieName];
+		const cookies = cookie.parse(requestCookies);
+		const sessionIdString = cookies[Warehouse.sessionCookieName];
 		if (sessionIdString == null) {
 			return null;
 		}
@@ -297,8 +292,9 @@ export class Warehouse {
 			return null;
 		}
 		const now = new Date();
-		const sessionAge = (session.lastAccess.getTime() - now.getTime()) / 1000;
+		const sessionAge = (now.getTime() - session.lastAccess.getTime()) / 1000;
 		if (sessionAge >= Warehouse.sessionMaxAge) {
+			// The session has expired, delete it.
 			await this.deleteSession(session);
 			return null;
 		}
@@ -306,6 +302,7 @@ export class Warehouse {
 			id: session.userId
 		});
 		if (user == null) {
+			// Orphaned session that lacks a corresponding user, delete it.
 			await this.deleteSession(session);
 			return null;
 		}
