@@ -36,6 +36,21 @@ export async function write(configuration: Configuration) {
 	});
 }
 
+export function obfuscate(configuration: Configuration): boolean {
+	let modified = false;
+	if (configuration.mongoDbUri != null && configuration.mongoDbUriSecure == null) {
+		const pattern = /^mongodb:\/\/.+?:.+?@/;
+		const match = pattern.test(configuration.mongoDbUri);
+		if (match === true) {
+			const obfuscatedMongoDbUri = obfuscation.obfuscate(configuration.mongoDbUri);
+			configuration.mongoDbUri = null;
+			configuration.mongoDbUriSecure = obfuscatedMongoDbUri;
+			modified = true;
+		}
+	}
+	return modified;
+}
+
 export function deobfuscate(configuration: Configuration) {
 	if (configuration.mongoDbUriSecure != null) {
 		configuration.mongoDbUri = obfuscation.deobfuscate(configuration.mongoDbUriSecure);

@@ -63,20 +63,10 @@ async function startService() {
 
 async function obfuscateConfiguration() {
 	const configuration = await configurationFile.read();
-	let writeConfiguration = false;
-	if (configuration.mongoDbUri != null && configuration.mongoDbUriSecure == null) {
-		const pattern = /^mongodb:\/\/.+?:.+?@/;
-		const match = pattern.test(configuration.mongoDbUri);
-		if (match === true) {
-			const obfuscatedMongoDbUri = obfuscation.obfuscate(configuration.mongoDbUri);
-			configuration.mongoDbUri = null;
-			configuration.mongoDbUriSecure = obfuscatedMongoDbUri;
-			writeConfiguration = true;
-			console.log('Obfuscating MongoDB connection string.');
-		}
-	}
-	if (writeConfiguration === true) {
+	const modified = configurationFile.obfuscate(configuration);
+	if (modified === true) {
 		await configurationFile.write(configuration);
+		console.log('Obfuscated configuration file.');
 	}
 	else {
 		console.log('Nothing to obfuscate.');

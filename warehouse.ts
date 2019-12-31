@@ -3,7 +3,7 @@ import http from 'http';
 import crypto from 'crypto';
 import mongodb from 'mongodb';
 
-import { Configuration, deobfuscate } from './configuration.js';
+import * as configurationFile from './configuration.js';
 import { Database, User, Session } from './database.js';
 import * as common from './common.js';
 
@@ -12,21 +12,27 @@ interface SessionRequest extends express.Request {
 }
 
 export class Warehouse {
+	static readonly cryptoSaltLength = 32;
+	static readonly cryptoKeyLength = 64;
+	static readonly cryptoParallelism = 4;
+
 	static readonly loginPath = '/login';
 	static readonly validateSessionPath = '/validate-session';
 
 	static readonly sessionCookieName = 'session';
 	static readonly sessionIdEncoding = 'base64';
+	static readonly sessionIdSize = 32;
 	static readonly sessionMaxAge = 30 * 24 * 60 * 60;
+	static readonly maximumSessionsPerUser = 3;
 
-	configuration: Configuration;
+	configuration: configurationFile.Configuration;
 	app: express.Application;
 	server: http.Server;
 	database: Database;
 
-	constructor(configuration: Configuration) {
+	constructor(configuration: configurationFile.Configuration) {
 		this.configuration = configuration;
-		deobfuscate(this.configuration);
+		configurationFile.deobfuscate(this.configuration);
 	}
 
 	async start() {
@@ -74,12 +80,22 @@ export class Warehouse {
 		if (debugging) {
 			this.app.use(this.corsMiddleware);
 		}
+		this.app.use(this.referrerMiddleware);
 		this.app.use(this.sessionMiddleware);
 	}
 
 	corsMiddleware(request: express.Request, response: express.Response, next: () => void) {
 		response.header('Access-Control-Allow-Origin', '*');
 		response.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+		next();
+	}
+
+	referrerMiddleware(request: express.Request, response: express.Response, next: () => void) {
+		const referrer = this.getReferrer(request);
+		if (referrer != null && referrer !== this.configuration.listenHostname) {
+			this.sendErrorResponse('Invalid referrer.', response);
+			return;
+		}
 		next();
 	}
 
@@ -90,17 +106,22 @@ export class Warehouse {
 		) {
 			const user = await this.getSessionUser(request);
 			if (user == null) {
-				const errorResponse: common.ErrorResponse = {
-					error: 'You need an active session to perform this operation.'
-				};
-				response.status(500);
-				response.send(errorResponse);
+				this.sendErrorResponse('You need an active session to perform this operation.', response);
 				return;
 			}
 			const sessionRequest = <SessionRequest>request;
 			sessionRequest.user = user;
 		}
 		next();
+	}
+
+	sendErrorResponse(message: string, response: express.Response) {
+		const errorResponse: common.ErrorResponse = {
+			error: message
+		};
+		const httpStatusForbidden = 403;
+		response.status(httpStatusForbidden);
+		response.send(errorResponse);
 	}
 
 	addRoutes() {
@@ -114,8 +135,7 @@ export class Warehouse {
 	}
 
 	async createUser(username: string, password: string, isAdmin: boolean) {
-		const saltLength = 32;
-		const salt = crypto.randomBytes(saltLength);
+		const salt = crypto.randomBytes(Warehouse.cryptoSaltLength);
 		const passwordHash = await this.hashPassword(password, salt);
 		const user = this.database.newUser(username, salt, passwordHash, isAdmin);
 		try {
@@ -136,12 +156,11 @@ export class Warehouse {
 	}
 
 	async hashPassword(password: string, salt: Buffer): Promise<Buffer> {
-		const keyLength = 64;
 		const scryptOptions: crypto.ScryptOptions = {
-			p: 4
+			p: Warehouse.cryptoParallelism
 		};
 		const passwordHash = await new Promise<Buffer>((resolve, reject) => {
-			crypto.scrypt(password, salt, keyLength, scryptOptions, (error, derivedKey) => {
+			crypto.scrypt(password, salt, Warehouse.cryptoKeyLength, scryptOptions, (error, derivedKey) => {
 				if (error != null) {
 					throw error;
 				}
@@ -202,6 +221,10 @@ export class Warehouse {
 		return request.headers['user-agent'];
 	}
 
+	getReferrer(request: express.Request): string {
+		return request.headers['referer'];
+	}
+
 	async createSessionWithRetry(request: express.Request, response: express.Response, user: User) {
 		while (true) {
 			try {
@@ -217,8 +240,7 @@ export class Warehouse {
 	}
 
 	async createSession(request: express.Request, response: express.Response, user: User) {
-		const sessionIdSize = 32;
-		const sessionId = crypto.randomBytes(sessionIdSize);
+		const sessionId = crypto.randomBytes(Warehouse.sessionIdSize);
 		const address = this.getAddress(request);
 		const userAgent = this.getUserAgent(request);
 		const session = this.database.newSession(user._id, sessionId, address, userAgent);
@@ -235,11 +257,10 @@ export class Warehouse {
 	}
 
 	async deleteOldSessions(user: User) {
-		const maximumSessions = 3;
 		const userSessions = await this.database.session.find({
 			userId: user._id
 		});
-		const sessionsToDelete = userSessions.length - maximumSessions;
+		const sessionsToDelete = userSessions.length - Warehouse.maximumSessionsPerUser;
 		if (sessionsToDelete > 0) {
 			userSessions.sort((a, b) => b.lastAccess.getTime() - a.lastAccess.getTime());
 			const userSessionsToDelete = userSessions.filter((_, i) => i < sessionsToDelete)
