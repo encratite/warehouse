@@ -80,6 +80,7 @@ export class Warehouse {
 		this.app.use(this.sessionMiddleware.bind(this));
 	}
 
+	// Check HTTP Origin header to prevent cross-site request forgery.
 	originMiddleware(request: express.Request, response: express.Response, next: () => void) {
 		const origin = <string>request.headers.origin;
 		if (origin != null) {
@@ -92,7 +93,9 @@ export class Warehouse {
 		next();
 	}
 
+	// Prevent access to most API functions without a valid session.
 	async sessionMiddleware(request: express.Request, response: express.Response, next: () => void) {
+		// Whitelist /login and /validate-session so they don't require a session.
 		if (
 			request.path !== Warehouse.loginPath &&
 			request.path !== Warehouse.validateSessionPath
@@ -255,11 +258,11 @@ export class Warehouse {
 		});
 		const sessionsToDelete = userSessions.length - Warehouse.maximumSessionsPerUser;
 		if (sessionsToDelete > 0) {
-			userSessions.sort((a, b) => b.lastAccess.getTime() - a.lastAccess.getTime());
+			userSessions.sort((a, b) => a.lastAccess.getTime() - b.lastAccess.getTime());
 			const userSessionsToDelete = userSessions.filter((_, i) => i < sessionsToDelete)
 			const userSessionIds = userSessionsToDelete.map(userSession => userSession._id);
 			await this.database.session.deleteMany({
-				id: {
+				_id: {
 					$in: userSessionIds
 				}
 			});
@@ -298,9 +301,7 @@ export class Warehouse {
 			await this.deleteSession(session);
 			return null;
 		}
-		const user = await this.database.user.findOne({
-			id: session.userId
-		});
+		const user = await this.database.user.findById(session.userId);
 		if (user == null) {
 			// Orphaned session that lacks a corresponding user, delete it.
 			await this.deleteSession(session);
@@ -312,8 +313,6 @@ export class Warehouse {
 	}
 
 	async deleteSession(session: Session) {
-		await this.database.session.deleteOne({
-			id: session._id
-		});
+		await this.database.session.findByIdAndDelete(session._id);
 	};
 }
