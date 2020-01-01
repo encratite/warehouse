@@ -10,15 +10,13 @@ import * as common from './common.js';
 
 interface SessionRequest extends express.Request {
 	user: User;
+	session: Session;
 }
 
 export class Warehouse {
 	static readonly cryptoSaltLength = 32;
 	static readonly cryptoKeyLength = 64;
 	static readonly cryptoParallelization = 4;
-
-	static readonly loginPath = '/login';
-	static readonly validateSessionPath = '/validate-session';
 
 	static readonly sessionCookieName = 'session';
 	static readonly sessionIdEncoding = 'base64';
@@ -31,6 +29,8 @@ export class Warehouse {
 	app: express.Application;
 	server: http.Server;
 	database: Database;
+
+	whitelistedPaths: string[] = [];
 
 	constructor(configuration: configurationFile.Configuration) {
 		this.configuration = configuration;
@@ -95,18 +95,17 @@ export class Warehouse {
 
 	// Prevent access to most API functions without a valid session.
 	async sessionMiddleware(request: express.Request, response: express.Response, next: () => void) {
-		// Whitelist /login and /validate-session so they don't require a session.
-		if (
-			request.path !== Warehouse.loginPath &&
-			request.path !== Warehouse.validateSessionPath
-		) {
-			const user = await this.getSessionUser(request);
+		// Whitelisted paths are exempt from session checks.
+		if (this.whitelistedPaths.includes(request.path) === false) {
+			const session = await this.getSession(request);
+			const user = await this.getSessionUser(session);
 			if (user == null) {
 				this.sendErrorResponse('You need an active session to perform this operation.', response);
 				return;
 			}
 			const sessionRequest = <SessionRequest>request;
 			sessionRequest.user = user;
+			sessionRequest.session = session;
 		}
 		next();
 	}
@@ -121,8 +120,16 @@ export class Warehouse {
 	}
 
 	addRoutes() {
-		this.app.post(Warehouse.loginPath, this.login.bind(this));
-		this.app.post(Warehouse.validateSessionPath, this.validateSession.bind(this));
+		this.addRoute('/login', this.login.bind(this), true);
+		this.addRoute('/logout', this.logout.bind(this));
+		this.addRoute('/validate-session', this.validateSession.bind(this), true);
+	}
+
+	addRoute(path: string, handler: (request: express.Request, response: express.Response) => void, whitelistPath: boolean = false) {
+		if (whitelistPath === true) {
+			this.whitelistedPaths.push(path);
+		}
+		this.app.post(path, handler);
 	}
 
 	async initializeDatabase() {
@@ -202,8 +209,14 @@ export class Warehouse {
 		response.send(loginResponse);
 	}
 
+	async logout(request: SessionRequest, response: express.Response) {
+		await this.database.session.findByIdAndDelete(request.session._id);
+		response.send({});
+	}
+
 	async validateSession(request: express.Request, response: express.Response) {
-		const user = await this.getSessionUser(request);
+		const session = await this.getSession(request);
+		const user = await this.getSessionUser(session);
 		const valid = user != null;
 		const validateSessionResponse: common.ValidateSessionResponse = {
 			valid: valid
@@ -269,7 +282,7 @@ export class Warehouse {
 		}
 	}
 
-	async getSessionUser(request: express.Request): Promise<User> {
+	async getSession(request: express.Request): Promise<Session> {
 		const requestCookies = request.headers.cookie;
 		if (requestCookies == null) {
 			return null;
@@ -301,12 +314,20 @@ export class Warehouse {
 			await this.deleteSession(session);
 			return null;
 		}
+		return session;
+	}
+
+	async getSessionUser(session: Session): Promise<User> {
+		if (session == null) {
+			return null;
+		}
 		const user = await this.database.user.findById(session.userId);
 		if (user == null) {
 			// Orphaned session that lacks a corresponding user, delete it.
 			await this.deleteSession(session);
 			return null;
 		}
+		const now = new Date();
 		session.lastAccess = now;
 		await session.save();
 		return user;
