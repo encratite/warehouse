@@ -100,7 +100,7 @@ export class Warehouse {
 			const session = await this.getSession(request);
 			const user = await this.getSessionUser(session);
 			if (user == null) {
-				this.sendErrorResponse('You need an active session to perform this operation.', response);
+				this.sendErrorResponse('You need to be logged in to perform this operation.', response);
 				return;
 			}
 			const sessionRequest = <SessionRequest>request;
