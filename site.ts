@@ -12,7 +12,7 @@ export interface TorrentSite {
     download(id: number): Promise<Buffer>;
 }
 
-export class BrowseResults {
+export interface BrowseResults {
     torrents: Torrent[];
     pages: number;
 }

@@ -9,6 +9,7 @@ import { Database, User, Session } from './database.js';
 import * as common from './common.js';
 import { TorrentSite } from './site.js';
 import { TorrentLeech } from './torrentleech.js';
+import * as validate from './validate.js';
 
 interface SessionRequest extends express.Request {
 	user: User;
@@ -206,6 +207,9 @@ export class Warehouse {
 
 	async login(request: express.Request, response: express.Response) {
 		const loginRequest = <common.LoginRequest>request.body;
+		validate.string('username', loginRequest.username);
+		validate.string('password', loginRequest.password);
+
 		const user = await new Promise<User>((resolve, reject) => {
 			this.database.user.findOne({ name: loginRequest.username }, (error, user) => {
 				if (error != null) {
@@ -245,6 +249,11 @@ export class Warehouse {
 
 	async browse(request: SessionRequest, response: express.Response) {
 		const browseRequest = <common.BrowseRequest>request.body;
+		validate.string('site', browseRequest.site);
+		validate.string('query', browseRequest.query);
+		validate.numberArray('categories', browseRequest.categories);
+		validate.number('page', browseRequest.page);
+
 		const site = this.sites.find(browseSite => browseSite.name === browseRequest.site);
 		if (site == null) {
 			throw new Error('No such site.');

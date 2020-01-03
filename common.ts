@@ -27,7 +27,7 @@ export interface BrowseResponse {
     pages: number;
 }
 
-export class Torrent {
+export interface Torrent {
     id: number;
     name: string;
     categoryId: number;
