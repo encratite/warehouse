@@ -14,3 +14,27 @@ export interface LoginResponse {
 export interface ValidateSessionResponse {
     valid: boolean;
 }
+
+export interface BrowseRequest {
+    site: string;
+    query: string;
+    categories: number[];
+    page: number;
+}
+
+export interface BrowseResponse {
+    torrents: Torrent[];
+    pages: number;
+}
+
+export class Torrent {
+    id: number;
+    name: string;
+    categoryId: number;
+    added: Date;
+    // Size of release, in bytes.
+    size: number;
+    downloads: number;
+    seeders: number;
+    leechers: number;
+}

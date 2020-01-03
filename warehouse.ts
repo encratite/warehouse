@@ -7,6 +7,8 @@ import cookie from 'cookie';
 import * as configurationFile from './configuration.js';
 import { Database, User, Session } from './database.js';
 import * as common from './common.js';
+import { TorrentSite } from './site.js';
+import { TorrentLeech } from './torrentleech.js';
 
 interface SessionRequest extends express.Request {
 	user: User;
@@ -29,12 +31,13 @@ export class Warehouse {
 	app: express.Application;
 	server: http.Server;
 	database: Database;
-
 	whitelistedPaths: string[] = [];
+	sites: TorrentSite[];
 
 	constructor(configuration: configurationFile.Configuration) {
 		this.configuration = configuration;
 		configurationFile.deobfuscate(this.configuration);
+		this.initializeSites();
 	}
 
 	async start() {
@@ -60,6 +63,21 @@ export class Warehouse {
 		if (this.database != null) {
 			this.database.close();
 			this.database = null;
+		}
+	}
+
+	initializeSites() {
+		this.sites = [
+			new TorrentLeech()
+		];
+		if (this.configuration.sites != null) {
+			this.sites.forEach(site => {
+				const settings = this.configuration.sites.find(siteSettings => siteSettings.name === site.name);
+				if (settings == null) {
+					throw new Error(`Unable to find settings for site "${site.name}".`);
+				}
+				site.initialize(settings);
+			});
 		}
 	}
 
@@ -123,6 +141,7 @@ export class Warehouse {
 		this.addRoute('/login', this.login.bind(this), true);
 		this.addRoute('/logout', this.logout.bind(this));
 		this.addRoute('/validate-session', this.validateSession.bind(this), true);
+		this.addRoute('/browse', this.browse.bind(this));
 	}
 
 	addRoute(path: string, handler: (request: express.Request, response: express.Response) => void, whitelistPath: boolean = false) {
@@ -222,6 +241,16 @@ export class Warehouse {
 			valid: valid
 		};
 		response.send(validateSessionResponse);
+	}
+
+	async browse(request: SessionRequest, response: express.Response) {
+		const browseRequest = <common.BrowseRequest>request.body;
+		const site = this.sites.find(browseSite => browseSite.name === browseRequest.site);
+		if (site == null) {
+			throw new Error('No such site.');
+		}
+		const browseResponse: common.BrowseResponse = await site.browse(browseRequest.query, browseRequest.categories, browseRequest.page);
+		response.send(browseResponse);
 	}
 
 	getAddress(request: express.Request): string {
