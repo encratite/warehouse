@@ -132,7 +132,7 @@ export class TorrentLeech implements site.TorrentSite {
             await this.login();
         }
         let url = 'https://www.torrentleech.org/torrents/browse/list';
-        if (categories.length > 0) {
+        if (categories != null && categories.length > 0) {
             url += '/categories/' + categories.join(',');
         }
         url += '/query/' + encodeURIComponent(query);

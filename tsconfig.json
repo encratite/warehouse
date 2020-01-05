@@ -4,6 +4,7 @@
 		"module": "ES2015",
 		"outDir": "out",
 		"sourceMap": true,
-		"allowSyntheticDefaultImports": true
+		"allowSyntheticDefaultImports": true,
+		"moduleResolution": "node"
 	}
 }
