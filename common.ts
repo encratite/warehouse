@@ -27,6 +27,11 @@ export interface BrowseResponse {
     pages: number;
 }
 
+export interface DownloadRequest {
+    site: string;
+    id: number;
+}
+
 export interface Torrent {
     id: number;
     name: string;

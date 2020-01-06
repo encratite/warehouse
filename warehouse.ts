@@ -143,6 +143,7 @@ export class Warehouse {
 		this.addRoute('/logout', this.logout.bind(this));
 		this.addRoute('/validate-session', this.validateSession.bind(this), true);
 		this.addRoute('/browse', this.browse.bind(this));
+		this.addRoute('/download', this.download.bind(this));
 	}
 
 	addRoute(path: string, handler: (request: express.Request, response: express.Response) => void, whitelistPath: boolean = false) {
@@ -254,12 +255,28 @@ export class Warehouse {
 		validate.numberArray('categories', browseRequest.categories, true);
 		validate.number('page', browseRequest.page);
 
-		const site = this.sites.find(browseSite => browseSite.name === browseRequest.site);
+		const site = this.getSite(browseRequest.site);
+		const browseResponse: common.BrowseResponse = await site.browse(browseRequest.query, browseRequest.categories, browseRequest.page);
+		response.send(browseResponse);
+	}
+
+	async download(request: SessionRequest, response: express.Response) {
+		const downloadRequest = <common.DownloadRequest>request.body;
+		validate.string('site', downloadRequest.site);
+		validate.number('id', downloadRequest.id);
+
+		const site = this.getSite(downloadRequest.site);
+		const torrent = await site.download(downloadRequest.id);
+		response.send({});
+		throw new Error('Not implemented.');
+	}
+
+	getSite(name: string): TorrentSite {
+		const site = this.sites.find(browseSite => browseSite.name === name);
 		if (site == null) {
 			throw new Error('No such site.');
 		}
-		const browseResponse: common.BrowseResponse = await site.browse(browseRequest.query, browseRequest.categories, browseRequest.page);
-		response.send(browseResponse);
+		return site;
 	}
 
 	getAddress(request: express.Request): string {

@@ -97,42 +97,43 @@ export class TorrentLeech implements site.TorrentSite {
     username: string;
     password: string;
     loggedIn: boolean = false;
+    request: any;
 
     initialize(settings: Site) {
         this.username = settings.username;
         this.password = settings.password;
+        this.request = request.defaults({
+            jar: true,
+            headers: TorrentLeech.headers,
+            transform: this.transform.bind(this),
+            simple: false
+        });
+    }
+
+    transform(body, response, resolveWithFullResponse) {
+        return response;
     }
 
     async login() {
-        // Get the cookie jar started.
-        await request({
-            url: 'https://www.torrentleech.org/',
-            jar: true,
-            headers: TorrentLeech.headers
-        });
-        // Perform the actual login.
-        const loginRequest = await request({
+        const loginResponse = await this.request({
             method: 'POST',
             url: 'https://www.torrentleech.org/user/account/login/',
-            jar: true,
-            headers: TorrentLeech.headers,
             form: {
                 username: this.username,
                 password: this.password
-            },
-            followRedirect: true
+            }
         });
-        const body = <string>loginRequest.response.body;
-        this.loggedIn = body.includes('PVPNIPAddress');
-        if (this.loggedIn === false) {
-            throw new Error('Failed to log in.');
+        if (loginResponse.statusCode !== 302) {
+            throw new Error('Unexpected login status code.');
         }
+        if (loginResponse.headers.location !== '/') {
+            throw new Error('Unexpected login location header.');
+        }
+        this.loggedIn = true;
     }
 
     async browse(query: string, categories: number[], page: number): Promise<site.BrowseResults> {
-        if (this.loggedIn === false) {
-            await this.login();
-        }
+        await this.loginCheck();
         let url = 'https://www.torrentleech.org/torrents/browse/list';
         if (categories != null && categories.length > 0) {
             url += '/categories/' + categories.join(',');
@@ -141,16 +142,14 @@ export class TorrentLeech implements site.TorrentSite {
         if (page >= 2) {
             url += '/page/' + page;
         }
-        const browseRequest = await request({
-            url: url,
-            jar: true,
-            headers: TorrentLeech.headers,
-            json: true
+        const browseRequest = await this.request({
+            url: url
         });
-        if (browseRequest.response.statusCode !== 200) {
+        if (browseRequest.statusCode !== 200) {
+            this.loggedIn = false;
             throw new Error('Failed to browse torrents. Check query parameters.');
         }
-        const torrentList: JsonTorrentList = browseRequest.response.body;
+        const torrentList: JsonTorrentList = JSON.parse(browseRequest.body);
         const torrents: common.Torrent[] = torrentList.torrentList.map(this.convertTorrent.bind(this));
         const pages = Math.ceil(torrentList.numFound / torrentList.perPage);
         const browseResults: site.BrowseResults = {
@@ -161,7 +160,18 @@ export class TorrentLeech implements site.TorrentSite {
     }
 
     async download(id: number): Promise<Buffer> {
-        throw new Error('Not implemented.');
+        await this.loginCheck();
+        const downloadResponse = await this.request({
+            url: `https://www.torrentleech.org/download/${id}/${id}.torrent`,
+            encoding: null
+        });
+        if (downloadResponse.statusCode !== 200) {
+            throw new Error('Failed to download torrent file.');
+        }
+        if (downloadResponse.headers['content-type'] !== 'application/x-bittorrent') {
+            throw new Error('Unexpected MIME type.');
+        }
+        return downloadResponse.body;
     }
 
     convertTorrent(jsonTorrent: JsonTorrent): common.Torrent {
@@ -190,5 +200,11 @@ export class TorrentLeech implements site.TorrentSite {
         const utcDateString = `${match[1]}T${match[2]}Z`;
         const date = new Date(utcDateString);
         return date;
+    }
+
+    async loginCheck() {
+        if (this.loggedIn === false) {
+            await this.login();
+        }
     }
 }
