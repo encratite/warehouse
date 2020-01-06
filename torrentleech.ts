@@ -1,4 +1,4 @@
-import request from 'request';
+import request from 'request-promise';
 
 import { Site } from './configuration.js';
 import * as site from './site.js';
@@ -48,7 +48,7 @@ interface JsonFacets {
 
 export class TorrentLeech implements site.TorrentSite {
     // Imitate a current version of Chrome for Windows.
-    static readonly headers: request.Headers = {
+    static readonly headers: any = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36'
     };
 
@@ -105,22 +105,24 @@ export class TorrentLeech implements site.TorrentSite {
 
     async login() {
         // Get the cookie jar started.
-        await request.get({
+        await request({
             url: 'https://www.torrentleech.org/',
             jar: true,
             headers: TorrentLeech.headers
         });
         // Perform the actual login.
-        const loginRequest = await request.post({
+        const loginRequest = await request({
+            method: 'POST',
             url: 'https://www.torrentleech.org/user/account/login/',
             jar: true,
             headers: TorrentLeech.headers,
             form: {
                 username: this.username,
                 password: this.password
-            }
+            },
+            followRedirect: true
         });
-        const body = <string>loginRequest.body;
+        const body = <string>loginRequest.response.body;
         this.loggedIn = body.includes('PVPNIPAddress');
         if (this.loggedIn === false) {
             throw new Error('Failed to log in.');
@@ -139,16 +141,16 @@ export class TorrentLeech implements site.TorrentSite {
         if (page >= 2) {
             url += '/page/' + page;
         }
-        const browseRequest = await request.get({
+        const browseRequest = await request({
             url: url,
             jar: true,
-            headers: TorrentLeech.headers
+            headers: TorrentLeech.headers,
+            json: true
         });
         if (browseRequest.response.statusCode !== 200) {
             throw new Error('Failed to browse torrents. Check query parameters.');
         }
-        const body = <string>browseRequest.body;
-        const torrentList: JsonTorrentList = JSON.parse(body);
+        const torrentList: JsonTorrentList = browseRequest.response.body;
         const torrents: common.Torrent[] = torrentList.torrentList.map(this.convertTorrent.bind(this));
         const pages = Math.ceil(torrentList.numFound / torrentList.perPage);
         const browseResults: site.BrowseResults = {

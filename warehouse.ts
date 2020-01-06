@@ -251,7 +251,7 @@ export class Warehouse {
 		const browseRequest = <common.BrowseRequest>request.body;
 		validate.string('site', browseRequest.site);
 		validate.string('query', browseRequest.query);
-		validate.numberArray('categories', browseRequest.categories);
+		validate.numberArray('categories', browseRequest.categories, true);
 		validate.number('page', browseRequest.page);
 
 		const site = this.sites.find(browseSite => browseSite.name === browseRequest.site);
