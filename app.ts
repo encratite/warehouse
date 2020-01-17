@@ -53,6 +53,7 @@ function main() {
 
 async function startService() {
 	try {
+		await obfuscateConfiguration();
 		const warehouse = await getWarehouse();
 		await warehouse.start();
 	}
