@@ -63,14 +63,8 @@ async function startService() {
 
 async function obfuscateConfiguration() {
 	const configuration = await configurationFile.read();
-	const modified = configurationFile.obfuscate(configuration);
-	if (modified === true) {
-		await configurationFile.write(configuration);
-		console.log('Obfuscated configuration file.');
-	}
-	else {
-		console.log('Nothing to obfuscate.');
-	}
+	configurationFile.obfuscate(configuration);
+	await configurationFile.write(configuration);
 }
 
 async function createUser(username: string, isAdmin: boolean) {

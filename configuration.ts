@@ -6,16 +6,13 @@ export interface Configuration {
 	listenPort: number;
 	listenHostname: string;
 	mongoDbUri: string;
-	mongoDbUriSecure: string;
 	sites: Site[];
 }
 
 export interface Site {
 	name: string;
 	username: string;
-	usernameSecure: string;
 	password: string;
-	passwordSecure: string;
 }
 
 const configurationPath = 'configuration.json';
@@ -45,49 +42,28 @@ export async function write(configuration: Configuration) {
 	});
 }
 
-export function obfuscate(configuration: Configuration): boolean {
-	let modified = false;
-	if (configuration.mongoDbUri != null && configuration.mongoDbUriSecure == null) {
+export function obfuscate(configuration: Configuration) {
+	if (configuration.mongoDbUri != null) {
 		const pattern = /^mongodb:\/\/.+?:.+?@/;
 		const match = pattern.test(configuration.mongoDbUri);
 		if (match === true) {
-			const obfuscatedMongoDbUri = obfuscation.obfuscate(configuration.mongoDbUri);
-			delete configuration.mongoDbUri;
-			configuration.mongoDbUriSecure = obfuscatedMongoDbUri;
-			modified = true;
+			configuration.mongoDbUri = obfuscation.obfuscate(configuration.mongoDbUri);
 		}
 	}
 	if (configuration.sites != null) {
 		configuration.sites.forEach(site => {
-			if (site.username != null && site.usernameSecure == null) {
-				const obfuscatedUsername = obfuscation.obfuscate(site.username);
-				delete site.username;
-				site.usernameSecure = obfuscatedUsername;
-				modified = true;
-			}
-			if (site.password != null && site.passwordSecure == null) {
-				const obfuscatedPassword = obfuscation.obfuscate(site.password);
-				delete site.password;
-				site.passwordSecure = obfuscatedPassword;
-				modified = true;
-			}
+			site.username = obfuscation.obfuscate(site.username);
+			site.password = obfuscation.obfuscate(site.password);
 		});
 	}
-	return modified;
 }
 
 export function deobfuscate(configuration: Configuration) {
-	if (configuration.mongoDbUriSecure != null) {
-		configuration.mongoDbUri = obfuscation.deobfuscate(configuration.mongoDbUriSecure);
-	}
+	configuration.mongoDbUri = obfuscation.deobfuscate(configuration.mongoDbUri);
 	if (configuration.sites != null) {
 		configuration.sites.forEach(site => {
-			if (site.usernameSecure != null) {
-				site.username = obfuscation.deobfuscate(site.usernameSecure);
-			}
-			if (site.passwordSecure != null) {
-				site.password = obfuscation.deobfuscate(site.passwordSecure);
-			}
+			site.username = obfuscation.deobfuscate(site.username);
+			site.password = obfuscation.deobfuscate(site.password);
 		});
 	}
 }

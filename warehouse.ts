@@ -93,18 +93,19 @@ export class Warehouse {
 	}
 
 	addMiddleware() {
-		const jsonMiddleware = express.json();
-		this.app.use(jsonMiddleware);
-		this.app.use(this.originMiddleware.bind(this));
-		this.app.use(this.sessionMiddleware.bind(this));
-	}
+		this.app.use(
+		  express.json(),
+		  this.originMiddleware.bind(this),
+		  this.sessionMiddleware.bind(this)
+		);
+	  }
 
 	// Check HTTP Origin header to prevent cross-site request forgery.
 	originMiddleware(request: express.Request, response: express.Response, next: () => void) {
 		const origin = <string>request.headers.origin;
 		if (origin != null) {
 			const originUrl = new URL(origin);
-			if (originUrl.host !== this.configuration.listenHostname) {
+			if (originUrl.hostname !== this.configuration.listenHostname) {
 				this.sendErrorResponse('Invalid request origin.', response);
 				return;
 			}
@@ -146,7 +147,7 @@ export class Warehouse {
 		this.addRoute('/download', this.download.bind(this));
 	}
 
-	addRoute(path: string, handler: (request: express.Request, response: express.Response) => void, whitelistPath: boolean = false) {
+	addRoute(path: string, handler: (request: express.Request, response: express.Response) => Promise<void>, whitelistPath: boolean = false) {
 		if (whitelistPath === true) {
 			this.whitelistedPaths.push(path);
 		}
