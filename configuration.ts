@@ -5,6 +5,7 @@ import * as obfuscation from './obfuscation.js';
 export interface Configuration {
 	listenPort: number;
 	listenHostname: string;
+	externalHostname: string;
 	mongoDbUri: string;
 	sites: Site[];
 }

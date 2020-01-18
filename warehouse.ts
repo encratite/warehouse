@@ -105,7 +105,7 @@ export class Warehouse {
 		const origin = <string>request.headers.origin;
 		if (origin != null) {
 			const originUrl = new URL(origin);
-			if (originUrl.hostname !== this.configuration.listenHostname) {
+			if (originUrl.hostname !== this.configuration.externalHostname) {
 				this.sendErrorResponse('Invalid request origin.', response);
 				return;
 			}
@@ -282,7 +282,11 @@ export class Warehouse {
 
 	getAddress(request: express.Request): string {
 		// nginx requires a corresponding X-Real-IP header for the proxy_pass.
-		return <string>request.headers['x-real-ip'] || request.connection.remoteAddress;
+		const realIp = <string>request.headers['x-real-ip'];
+		if (realIp == null) {
+			throw new Error('Missing X-Real-IP header.');
+		}
+		return realIp;
 	}
 
 	getUserAgent(request: express.Request): string {
