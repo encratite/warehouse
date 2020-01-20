@@ -21,10 +21,12 @@ const configurationPath = 'configuration.json';
 export async function read(): Promise<Configuration> {
 	const configurationJson = await new Promise<string>((resolve, reject) => {
 		fs.readFile(configurationPath, 'utf8', (error, contents) => {
-			if (error != null) {
-				throw error;
+			if (error == null) {
+				resolve(contents);
 			}
-			resolve(contents);
+			else {
+				reject(error);
+			}
 		});
 	});
 	const configuration = <Configuration>JSON.parse(configurationJson);
@@ -35,10 +37,12 @@ export async function write(configuration: Configuration) {
 	const configurationJson = JSON.stringify(configuration, null, 4);
 	await new Promise((resolve, reject) => {
 		fs.writeFile(configurationPath, configurationJson, (error) => {
-			if (error != null) {
-				throw error;
+			if (error == null) {
+				resolve();
 			}
-			resolve();
+			else {
+				reject(error);
+			}
 		});
 	});
 }

@@ -151,7 +151,15 @@ export class Warehouse {
 		if (whitelistPath === true) {
 			this.whitelistedPaths.push(path);
 		}
-		this.app.post(path, handler);
+		this.app.post(path, async (request: express.Request, response: express.Response) => {
+			try {
+				await handler(request, response);
+			}
+			catch (error) {
+				const message = error.toString();
+				this.sendErrorResponse(message, response);
+			}
+		});
 	}
 
 	async initializeDatabase() {
@@ -188,10 +196,12 @@ export class Warehouse {
 		};
 		const passwordHash = await new Promise<Buffer>((resolve, reject) => {
 			crypto.scrypt(password, salt, Warehouse.cryptoKeyLength, scryptOptions, (error, derivedKey) => {
-				if (error != null) {
-					throw error;
+				if (error == null) {
+					resolve(derivedKey);
 				}
-				resolve(derivedKey);
+				else {
+					reject(error);
+				}
 			});
 		});
 		return passwordHash;
@@ -214,10 +224,12 @@ export class Warehouse {
 
 		const user = await new Promise<User>((resolve, reject) => {
 			this.database.user.findOne({ name: loginRequest.username }, (error, user) => {
-				if (error != null) {
-					throw error;
+				if (error == null) {
+					resolve(user);
 				}
-				resolve(user);
+				else {
+					reject(error);
+				}
 			});
 		});
 		let success = false;
