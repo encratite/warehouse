@@ -395,5 +395,5 @@ export class Warehouse {
 
 	async deleteSession(session: Session) {
 		await this.database.session.findByIdAndDelete(session._id);
-	};
+	}
 }
