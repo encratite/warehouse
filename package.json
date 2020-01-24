@@ -26,6 +26,7 @@
     "mongoose": "^5.8.4",
     "request": "^2.88.0",
     "request-promise": "^4.2.5",
+    "transmission": "^0.4.9",
     "typescript": "^3.7.4"
   }
 }

@@ -3,6 +3,7 @@ import http from 'http';
 import crypto from 'crypto';
 import mongodb from 'mongodb';
 import cookie from 'cookie';
+import transmission from 'transmission';
 
 import * as configurationFile from './configuration.js';
 import { Database, User, Session } from './database.js';
@@ -34,11 +35,13 @@ export class Warehouse {
 	database: Database;
 	whitelistedPaths: string[] = [];
 	sites: TorrentSite[];
+	transmission: transmission.TransmissionClient;
 
 	constructor(configuration: configurationFile.Configuration) {
 		this.configuration = configuration;
 		configurationFile.deobfuscate(this.configuration);
 		this.initializeSites();
+		this.transmission = transmission(configuration.transmission);
 	}
 
 	async start() {
@@ -280,8 +283,18 @@ export class Warehouse {
 
 		const site = this.getSite(downloadRequest.site);
 		const torrent = await site.download(downloadRequest.id);
+		const torrentString = torrent.toString('base64');
+		await new Promise<void>((resolve, reject) => {
+			this.transmission.addBase64(torrentString, {}, (error, torrent) => {
+				if (error == null) {
+					resolve();
+				}
+				else {
+					reject(error);
+				}
+			});
+		});
 		response.send({});
-		throw new Error('Not implemented.');
 	}
 
 	getSite(name: string): TorrentSite {

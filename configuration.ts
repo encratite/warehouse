@@ -1,4 +1,5 @@
 import fs from 'fs';
+import transmission from 'transmission';
 
 import * as obfuscation from './obfuscation.js';
 
@@ -8,6 +9,7 @@ export interface Configuration {
 	externalHostname: string;
 	mongoDbUri: string;
 	sites: Site[];
+	transmission: transmission.TransmissionOptions;
 }
 
 export interface Site {
@@ -60,6 +62,11 @@ export function obfuscate(configuration: Configuration) {
 			site.username = obfuscation.obfuscate(site.username);
 			site.password = obfuscation.obfuscate(site.password);
 		});
+	}
+	const transmission = configuration.transmission;
+	if (transmission != null) {
+		transmission.username = obfuscation.obfuscate(transmission.username);
+		transmission.password = obfuscation.obfuscate(transmission.password);
 	}
 }
 
