@@ -147,8 +147,7 @@ const downloadSchema = new mongoose.Schema({
 		required: true
 	},
 	size: {
-		type: Number,
-		required: true
+		type: Number
 	},
 	manual: {
 		type: Boolean,

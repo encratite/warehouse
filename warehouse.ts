@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import mongodb from 'mongodb';
 import cookie from 'cookie';
 import transmission from 'transmission';
+import uuidv1 from 'uuid/v1';
 
 import * as configurationFile from './configuration.js';
 import { Database, User, Session } from './database.js';
@@ -282,19 +283,70 @@ export class Warehouse {
 		validate.number('id', downloadRequest.id);
 
 		const site = this.getSite(downloadRequest.site);
-		const torrent = await site.download(downloadRequest.id);
-		const torrentString = torrent.toString('base64');
-		await new Promise<void>((resolve, reject) => {
-			this.transmission.addBase64(torrentString, {}, (error, torrent) => {
+		const torrentFile = await site.download(downloadRequest.id);
+		// Retrieve the current list of torrent IDs to determine if the torrent had already been added.
+		const getIdResponse = await this.getTorrents(null, ['id']);
+		const addTorrentResponse = await this.queueTorrent(torrentFile);
+		// Check if the ID returned by the service matches that of any of the torrents previously retrieved.
+		const hadAlreadyBeenAdded = getIdResponse.torrents.some(torrent => torrent.id === addTorrentResponse.id);
+		if (hadAlreadyBeenAdded === false) {
+			// Retrieve the size of the torrent.
+			const getSizeResponse = await this.getTorrents([addTorrentResponse.id], ['name', 'totalSize']);
+			let totalSize: number = null;
+			if (getSizeResponse.torrents.length === 1) {
+				totalSize = getSizeResponse.torrents[0].totalSize;
+			}
+			else {
+				console.error(`Failed to determine size of torrent "${addTorrentResponse.name}" (ID ${addTorrentResponse.id}).`);
+			}
+			// Log the download in the database.
+			const download = this.database.newDownload(request.session.userId, addTorrentResponse.name, totalSize, true);
+			await download.save();
+			response.send({});
+		}
+		else {
+			this.sendErrorResponse('This torrent had already been added.', response);
+		}
+	}
+
+	async getTorrents(ids: number[], fields: string[]): Promise<transmission.GetTorrentResponse> {
+		const options = {
+			arguments: {
+					ids: ids,
+					fields: fields
+			},
+			method: 'torrent-get',
+			tag: uuidv1()
+		};
+		if (ids == null) {
+			delete options.arguments.ids;
+		}
+		const getTorrentResponse = await new Promise<transmission.GetTorrentResponse>((resolve, reject) => {
+			this.transmission.callServer(options, (error: Error, response: transmission.GetTorrentResponse) => {
 				if (error == null) {
-					resolve();
+					resolve(response);
 				}
 				else {
 					reject(error);
 				}
 			});
 		});
-		response.send({});
+		return getTorrentResponse;
+	}
+
+	async queueTorrent(torrentFile: Buffer): Promise<transmission.Torrent> {
+		const torrentFileString = torrentFile.toString('base64');
+		const addTorrentResponse = await new Promise<transmission.Torrent>((resolve, reject) => {
+			this.transmission.addBase64(torrentFileString, {}, (error, torrent) => {
+				if (error == null) {
+					resolve(torrent);
+				}
+				else {
+					reject(error);
+				}
+			});
+		});
+		return addTorrentResponse;
 	}
 
 	getSite(name: string): TorrentSite {
