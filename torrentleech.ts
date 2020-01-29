@@ -132,7 +132,7 @@ export class TorrentLeech implements site.TorrentSite {
 		this.loggedIn = true;
 	}
 
-	async browse(query: string, categories: number[], page: number): Promise<site.BrowseResults> {
+	async search(query: string, categories: number[], page: number): Promise<site.BrowseResults> {
 		await this.loginCheck();
 		let url = 'https://www.torrentleech.org/torrents/browse/list';
 		if (categories != null && categories.length > 0) {

@@ -147,8 +147,9 @@ export class Warehouse {
 		this.addRoute('/login', this.login.bind(this), true);
 		this.addRoute('/logout', this.logout.bind(this));
 		this.addRoute('/validate-session', this.validateSession.bind(this), true);
-		this.addRoute('/browse', this.browse.bind(this));
+		this.addRoute('/search', this.search.bind(this));
 		this.addRoute('/download', this.download.bind(this));
+		this.addRoute('/get-torrents', this.getTorrents.bind(this));
 	}
 
 	addRoute(path: string, handler: (request: express.Request, response: express.Response) => Promise<void>, whitelistPath: boolean = false) {
@@ -265,16 +266,16 @@ export class Warehouse {
 		response.send(validateSessionResponse);
 	}
 
-	async browse(request: SessionRequest, response: express.Response) {
-		const browseRequest = <common.BrowseRequest>request.body;
-		validate.string('site', browseRequest.site);
-		validate.string('query', browseRequest.query);
-		validate.numberArray('categories', browseRequest.categories, true);
-		validate.number('page', browseRequest.page);
+	async search(request: SessionRequest, response: express.Response) {
+		const searchRequest = <common.SearchRequest>request.body;
+		validate.string('site', searchRequest.site);
+		validate.string('query', searchRequest.query);
+		validate.numberArray('categories', searchRequest.categories, true);
+		validate.number('page', searchRequest.page);
 
-		const site = this.getSite(browseRequest.site);
-		const browseResponse: common.BrowseResponse = await site.browse(browseRequest.query, browseRequest.categories, browseRequest.page);
-		response.send(browseResponse);
+		const site = this.getSite(searchRequest.site);
+		const searchResponse: common.SearchResponse = await site.search(searchRequest.query, searchRequest.categories, searchRequest.page);
+		response.send(searchResponse);
 	}
 
 	async download(request: SessionRequest, response: express.Response) {
@@ -285,13 +286,13 @@ export class Warehouse {
 		const site = this.getSite(downloadRequest.site);
 		const torrentFile = await site.download(downloadRequest.id);
 		// Retrieve the current list of torrent IDs to determine if the torrent had already been added.
-		const getIdResponse = await this.getTorrents(null, ['id']);
-		const addTorrentResponse = await this.queueTorrent(torrentFile);
+		const getIdResponse = await this.transmissionGetTorrents(null, ['id']);
+		const addTorrentResponse = await this.transmissionQueueTorrent(torrentFile);
 		// Check if the ID returned by the service matches that of any of the torrents previously retrieved.
 		const hadAlreadyBeenAdded = getIdResponse.torrents.some(torrent => torrent.id === addTorrentResponse.id);
 		if (hadAlreadyBeenAdded === false) {
 			// Retrieve the size of the torrent.
-			const getSizeResponse = await this.getTorrents([addTorrentResponse.id], ['name', 'totalSize']);
+			const getSizeResponse = await this.transmissionGetTorrents([addTorrentResponse.id], ['name', 'totalSize']);
 			let totalSize: number = null;
 			if (getSizeResponse.torrents.length === 1) {
 				totalSize = getSizeResponse.torrents[0].totalSize;
@@ -309,7 +310,37 @@ export class Warehouse {
 		}
 	}
 
-	async getTorrents(ids: number[], fields: string[]): Promise<transmission.GetTorrentResponse> {
+	async getTorrents(request: SessionRequest, response: express.Response) {
+		const torrentResponse = await this.transmissionGetTorrents(null, [
+			'dateCreated',
+			'name',
+			'peers',
+			'rateDownload',
+			'rateUpload',
+			'status',
+			'totalSize'
+		]);
+		const torrentStates = torrentResponse.torrents.map(torrent => this.getTorrentState(torrent));
+		const getTorrentResponse: common.GetTorrentResponse = {
+			torrents: torrentStates
+		};
+		response.send(getTorrentResponse);
+	}
+
+	getTorrentState(torrent: transmission.Torrent): common.TorrentState {
+		const timeAdded = new Date(1000 * torrent.addedDate);
+		return {
+			name: torrent.name,
+			downloadSpeed: torrent.rateDownload,
+			uploadSpeed: torrent.rateUpload,
+			peers: torrent.peers.length,
+			size: torrent.totalSize,
+			state: torrent.status,
+			timeAdded: timeAdded.toISOString()
+		};
+	}
+
+	async transmissionGetTorrents(ids: number[], fields: string[]): Promise<transmission.GetTorrentResponse> {
 		const options = {
 			arguments: {
 					ids: ids,
@@ -334,7 +365,7 @@ export class Warehouse {
 		return getTorrentResponse;
 	}
 
-	async queueTorrent(torrentFile: Buffer): Promise<transmission.Torrent> {
+	async transmissionQueueTorrent(torrentFile: Buffer): Promise<transmission.Torrent> {
 		const torrentFileString = torrentFile.toString('base64');
 		const addTorrentResponse = await new Promise<transmission.Torrent>((resolve, reject) => {
 			this.transmission.addBase64(torrentFileString, {}, (error, torrent) => {
