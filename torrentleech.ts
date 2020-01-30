@@ -176,12 +176,11 @@ export class TorrentLeech implements site.TorrentSite {
 
 	convertTorrent(jsonTorrent: JsonTorrent): common.Torrent {
 		const id = parseInt(jsonTorrent.fid);
-		const added = this.getDateFromString(jsonTorrent.addedTimestamp);
 		const torrent: common.Torrent = {
 			id: id,
 			name: jsonTorrent.name,
 			categoryId: jsonTorrent.categoryID,
-			added: added,
+			added: jsonTorrent.addedTimestamp,
 			// Size of release, in bytes.
 			size: jsonTorrent.size,
 			downloads: jsonTorrent.completed,

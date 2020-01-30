@@ -7,7 +7,7 @@ import transmission from 'transmission';
 import uuidv1 from 'uuid/v1';
 
 import * as configurationFile from './configuration.js';
-import { Database, User, Session } from './database.js';
+import { Database, User, Session, Subscription } from './database.js';
 import * as common from './common.js';
 import { TorrentSite } from './site.js';
 import { TorrentLeech } from './torrentleech.js';
@@ -150,6 +150,9 @@ export class Warehouse {
 		this.addRoute('/search', this.search.bind(this));
 		this.addRoute('/download', this.download.bind(this));
 		this.addRoute('/get-torrents', this.getTorrents.bind(this));
+		this.addRoute('/get-subscriptions', this.getSubscriptions.bind(this));
+		this.addRoute('/create-subscription', this.createSubscription.bind(this));
+		this.addRoute('/delete-subscription', this.deleteSubscription.bind(this));
 	}
 
 	addRoute(path: string, handler: (request: express.Request, response: express.Response) => Promise<void>, whitelistPath: boolean = false) {
@@ -320,15 +323,32 @@ export class Warehouse {
 			'status',
 			'totalSize'
 		]);
-		const torrentStates = torrentResponse.torrents.map(torrent => this.getTorrentState(torrent));
+		const torrentStates = torrentResponse.torrents.map(torrent => this.convertTorrent(torrent));
 		const getTorrentResponse: common.GetTorrentResponse = {
 			torrents: torrentStates
 		};
 		response.send(getTorrentResponse);
 	}
 
-	getTorrentState(torrent: transmission.Torrent): common.TorrentState {
-		const timeAdded = new Date(1000 * torrent.addedDate);
+	async getSubscriptions(request: SessionRequest, response: express.Response) {
+		const subscriptions = await this.database.subscription.find({ userId: request.session.userId });
+		const responseSubscriptions = subscriptions.map(subscription => this.convertSubscription(subscription));
+		const getSubscriptionResopnse: common.GetSubscriptionResponse = {
+			subscriptions: responseSubscriptions
+		};
+		response.send(getSubscriptionResopnse);
+	}
+
+	async createSubscription(request: SessionRequest, response: express.Response) {
+		throw new Error('Not implemented.');
+	}
+
+	async deleteSubscription(request: SessionRequest, response: express.Response) {
+		throw new Error('Not implemented.');
+	}
+
+	convertTorrent(torrent: transmission.Torrent): common.TorrentState {
+		const added = new Date(1000 * torrent.addedDate);
 		return {
 			name: torrent.name,
 			downloadSpeed: torrent.rateDownload,
@@ -336,7 +356,17 @@ export class Warehouse {
 			peers: torrent.peers.length,
 			size: torrent.totalSize,
 			state: torrent.status,
-			timeAdded: timeAdded.toISOString()
+			added: added.toISOString()
+		};
+	}
+
+	convertSubscription(subscription: Subscription): common.Subscription {
+		return {
+			pattern: subscription.pattern,
+			category: subscription.category,
+			matches: subscription.matches,
+			created: subscription.created.toISOString(),
+			lastMatch: subscription.lastMatch.toISOString()
 		};
 	}
 
