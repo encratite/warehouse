@@ -2,6 +2,7 @@ import express from 'express';
 import http from 'http';
 import crypto from 'crypto';
 import mongodb from 'mongodb';
+import mongoose from 'mongoose';
 import cookie from 'cookie';
 import transmission from 'transmission';
 import uuidv1 from 'uuid/v1';
@@ -12,6 +13,7 @@ import * as common from './common.js';
 import { TorrentSite } from './site.js';
 import { TorrentLeech } from './torrentleech.js';
 import * as validate from './validate.js';
+import { generatePassword } from './password.js';
 
 interface SessionRequest extends express.Request {
 	user: User;
@@ -331,7 +333,27 @@ export class Warehouse {
 	}
 
 	async getSubscriptions(request: SessionRequest, response: express.Response) {
-		const subscriptions = await this.database.subscription.find({ userId: request.session.userId });
+		const getSubscriptionRequest = <common.GetSubscriptionRequest>request.body;
+		validate.boolean('all', getSubscriptionRequest.all);
+		validate.string('userId', getSubscriptionRequest.userId, true)
+
+		const conditions: any = {};
+		if (getSubscriptionRequest.all === true) {
+			// The user requested a list of all subscriptions.
+			this.adminCheck(request);
+		}
+		else {
+			if (getSubscriptionRequest.userId != null) {
+				// The user requested a list of subscriptions of a particular user.
+				this.adminCheck(request);
+				conditions._id = mongoose.Types.ObjectId(getSubscriptionRequest.userId);
+			}
+			else {
+				// The user requested a list of their own subscriptions.
+				conditions._id = request.session.userId;
+			}
+		}
+		const subscriptions = await this.database.subscription.find(conditions);
 		const responseSubscriptions = subscriptions.map(subscription => this.convertSubscription(subscription));
 		const getSubscriptionResopnse: common.GetSubscriptionResponse = {
 			subscriptions: responseSubscriptions
@@ -340,11 +362,34 @@ export class Warehouse {
 	}
 
 	async createSubscription(request: SessionRequest, response: express.Response) {
-		throw new Error('Not implemented.');
+		const createSubscriptionRequest = <common.CreateSubscriptionRequest>request.body;
+		validate.string('pattern', createSubscriptionRequest.pattern);
+		validate.string('category', createSubscriptionRequest.category);
+
+		this.validatePattern(createSubscriptionRequest.pattern);
+		const subscription = this.database.newSubscription(request.session.userId, createSubscriptionRequest.pattern, createSubscriptionRequest.category);
+		const persistedSubscription = await subscription.save();
+		const createSubscriptionResponse: common.CreateSubscriptionResponse = {
+			subscriptionId: persistedSubscription._id.toString()
+		};
+		response.send(createSubscriptionResponse);
 	}
 
 	async deleteSubscription(request: SessionRequest, response: express.Response) {
-		throw new Error('Not implemented.');
+		const deleteSubscriptionRequest = <common.DeleteSubscriptionRequest>request.body;
+		validate.string('subscriptionId', deleteSubscriptionRequest.subscriptionId);
+
+		const conditions: any = {
+			_id: mongoose.Types.ObjectId(deleteSubscriptionRequest.subscriptionId)
+		};
+		// Only admins may delete the subscriptions of other users.
+		if (request.user.isAdmin === false) {
+			conditions.userId = request.session.userId;
+		}
+		const result = await this.database.subscription.deleteOne(conditions);
+		if (result.deletedCount === 0) {
+			throw new Error('Invalid subscription ID.');
+		}
 	}
 
 	convertTorrent(torrent: transmission.Torrent): common.TorrentState {
@@ -368,6 +413,28 @@ export class Warehouse {
 			created: subscription.created.toISOString(),
 			lastMatch: subscription.lastMatch.toISOString()
 		};
+	}
+
+	validatePattern(pattern: string) {
+		let regExp: RegExp;
+		try {
+			regExp = new RegExp(pattern);
+		}
+		catch {
+			throw new Error('You have specified an invalid regular expression.');
+		}
+		const randomString = generatePassword();
+		const testString = `${randomString}.S01E02.720p.1080p`;
+		const match = regExp.exec(testString);
+		if (match != null) {
+			throw new Error('Your regular expression matches too many release names.');
+		}
+	}
+
+	adminCheck(request: SessionRequest) {
+		if (request.user.isAdmin === false) {
+			throw new Error('Only administrators may perform this operation.');
+		}
 	}
 
 	async transmissionGetTorrents(ids: number[], fields: string[]): Promise<transmission.GetTorrentResponse> {

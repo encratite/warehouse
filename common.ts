@@ -36,8 +36,31 @@ export interface GetTorrentResponse {
 	torrents: TorrentState[];
 }
 
+export interface GetSubscriptionRequest {
+	// Retrieve all subscriptions rather than just those of a single user.
+	// May only be used by administrators.
+	all: boolean;
+	// Retrieve the subscriptions of the user matching this particular ID.
+	// Only used when getAll === false.
+	// May only be used by administrators.
+	userId: string;
+}
+
 export interface GetSubscriptionResponse {
 	subscriptions: Subscription[];
+}
+
+export interface CreateSubscriptionRequest {
+	pattern: string;
+	category: string;
+}
+
+export interface CreateSubscriptionResponse {
+	subscriptionId: string;
+}
+
+export interface DeleteSubscriptionRequest {
+	subscriptionId: string;
 }
 
 export interface Torrent {
