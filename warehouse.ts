@@ -33,12 +33,15 @@ export class Warehouse {
 	static readonly maximumSessionsPerUser = 3;
 
 	configuration: configurationFile.Configuration;
+	running: boolean = false;
 	app: express.Application;
 	server: http.Server;
 	database: Database;
 	whitelistedPaths: string[] = [];
 	sites: TorrentSite[];
+	releaseCache: Map<string, Set<number>>;
 	transmission: transmission.TransmissionClient;
+	subscriptionInterval: NodeJS.Timeout;
 
 	constructor(configuration: configurationFile.Configuration) {
 		this.configuration = configuration;
@@ -48,11 +51,16 @@ export class Warehouse {
 	}
 
 	async start() {
+		if (this.running === true) {
+			throw new Error('Service is already running.');
+		}
 		try {
 			await Promise.all([
 				this.initializeWeb(),
 				this.initializeDatabase()
 			]);
+			this.subscriptionInterval = setInterval(this.onSubscriptionIntervalTick.bind(this), this.configuration.subscriptionInterval);
+			this.running = true;
 			console.log(`Listening on ${this.configuration.listenHostname}:${this.configuration.listenPort}.`);
 		}
 		catch (error) {
@@ -61,7 +69,13 @@ export class Warehouse {
 		}
 	}
 
-	stop() {
+	stop(checkState: boolean = true) {
+		if (checkState === true && this.running === true) {
+			throw new Error('Service is already running.');
+		}
+		if (this.subscriptionInterval != null) {
+			clearInterval(this.subscriptionInterval);
+		}
 		if (this.server != null) {
 			this.server.close();
 			this.app = null;
@@ -86,6 +100,11 @@ export class Warehouse {
 				site.initialize(settings);
 			});
 		}
+		this.sites.forEach(site => {
+			if (this.releaseCache.has(site.name) === false) {
+				this.releaseCache[site.name] = new Set();
+			}
+		});
 	}
 
 	async initializeWeb() {
@@ -600,5 +619,23 @@ export class Warehouse {
 
 	async deleteSession(session: Session) {
 		await this.database.session.findByIdAndDelete(session._id);
+	}
+
+	async onSubscriptionIntervalTick() {
+		const subscriptions = await this.database.subscription.find({});
+		if (subscriptions.length === 0) {
+			// The system does not have any subscriptions yet so there is no reason to poll the sites.
+			return;
+		}
+		// Run subscription checks in parallel.
+		const checks = this.sites.map(site => this.checkNewTorrents(site, subscriptions));
+		await Promise.all(checks);
+	}
+
+	async checkNewTorrents(site: TorrentSite, subscriptions: Subscription[]) {
+		const cache = this.releaseCache[site.name];
+		for (let page = 1; true; page++) {
+			throw new Error('Not implemented.');
+		}
 	}
 }

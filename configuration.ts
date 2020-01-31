@@ -8,6 +8,7 @@ export interface Configuration {
 	listenHostname: string;
 	externalHostname: string;
 	mongoDbUri: string;
+	subscriptionInterval: number;
 	sites: Site[];
 	transmission: transmission.TransmissionOptions;
 }
