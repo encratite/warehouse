@@ -8,6 +8,7 @@ export interface TorrentSite {
 
 	initialize(settings: Site);
 	login();
+	browse(page: number): Promise<BrowseResults>;
 	search(query: string, categories: number[], page: number): Promise<BrowseResults>;
 	download(id: number): Promise<Buffer>;
 }

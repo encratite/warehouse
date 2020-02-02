@@ -132,30 +132,15 @@ export class TorrentLeech implements site.TorrentSite {
 		this.loggedIn = true;
 	}
 
+	async browse(page: number): Promise<site.BrowseResults> {
+		const baseUrl = 'https://www.torrentleech.org/torrents/browse/index';
+		const results = this.getBrowseResults(baseUrl, null, null, page);
+		return results;
+	}
+
 	async search(query: string, categories: number[], page: number): Promise<site.BrowseResults> {
-		await this.loginCheck();
-		let url = 'https://www.torrentleech.org/torrents/browse/list';
-		if (categories != null && categories.length > 0) {
-			url += '/categories/' + categories.join(',');
-		}
-		url += '/query/' + encodeURIComponent(query);
-		if (page >= 2) {
-			url += '/page/' + page;
-		}
-		const browseRequest = await this.request({
-			url: url
-		});
-		if (browseRequest.statusCode !== 200) {
-			this.loggedIn = false;
-			throw new Error('Failed to browse torrents. Check query parameters.');
-		}
-		const torrentList: JsonTorrentList = JSON.parse(browseRequest.body);
-		const torrents: common.Torrent[] = torrentList.torrentList.map(this.convertTorrent.bind(this));
-		const pages = Math.ceil(torrentList.numFound / torrentList.perPage);
-		const browseResults: site.BrowseResults = {
-			torrents: torrents,
-			pages: pages
-		};
+		const baseUrl = 'https://www.torrentleech.org/torrents/browse/list';
+		const browseResults = this.getBrowseResults(baseUrl, query, categories, page);
 		return browseResults;
 	}
 
@@ -205,5 +190,39 @@ export class TorrentLeech implements site.TorrentSite {
 		if (this.loggedIn === false) {
 			await this.login();
 		}
+	}
+
+	async getBrowseResults(baseUrl: string, query: string, categories: number[], page: number): Promise<site.BrowseResults> {
+		await this.loginCheck();
+		const url = this.getBrowseUrl(baseUrl, query, categories, page);
+		const browseRequest = await this.request({
+			url: url
+		});
+		if (browseRequest.statusCode !== 200) {
+			this.loggedIn = false;
+			throw new Error('Failed to retrieve torrents. Check query parameters.');
+		}
+		const torrentList: JsonTorrentList = JSON.parse(browseRequest.body);
+		const torrents: common.Torrent[] = torrentList.torrentList.map(this.convertTorrent.bind(this));
+		const pages = Math.ceil(torrentList.numFound / torrentList.perPage);
+		const browseResults: site.BrowseResults = {
+			torrents: torrents,
+			pages: pages
+		};
+		return browseResults;
+	}
+
+	getBrowseUrl(baseUrl: string, query: string, categories: number[], page: number): string {
+		let url = baseUrl;
+		if (categories != null && categories.length > 0) {
+			url += `/categories/${categories.join(',')}`;
+		}
+		if (query != null) {
+			url += `/query/${encodeURIComponent(query)}`;
+		}
+		if (page >= 2) {
+			url += `/page/${page}`;
+		}
+		return url;
 	}
 }

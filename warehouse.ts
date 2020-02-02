@@ -30,7 +30,9 @@ export class Warehouse {
 	static readonly sessionIdLength = 32;
 	// Maximum age of sessions, in seconds.
 	static readonly sessionMaxAge = 30 * 24 * 60 * 60;
-	static readonly maximumSessionsPerUser = 3;
+	static readonly maxSessionsPerUser = 3;
+
+	static readonly maxSubscribersShown = 5;
 
 	configuration: configurationFile.Configuration;
 	running: boolean = false;
@@ -553,7 +555,7 @@ export class Warehouse {
 		const userSessions = await this.database.session.find({
 			userId: user._id
 		});
-		const sessionsToDelete = userSessions.length - Warehouse.maximumSessionsPerUser;
+		const sessionsToDelete = userSessions.length - Warehouse.maxSessionsPerUser;
 		if (sessionsToDelete > 0) {
 			userSessions.sort((a, b) => a.lastAccess.getTime() - b.lastAccess.getTime());
 			const userSessionsToDelete = userSessions.filter((_, i) => i < sessionsToDelete)
@@ -633,9 +635,88 @@ export class Warehouse {
 	}
 
 	async checkNewTorrents(site: TorrentSite, subscriptions: Subscription[]) {
-		const cache = this.releaseCache[site.name];
-		for (let page = 1; true; page++) {
-			throw new Error('Not implemented.');
+		const cache: Set<number> = this.releaseCache[site.name];
+		const cacheWasEmpty = cache.size === 0;
+		let pages: number = null;
+		for (let page = 1; pages === null || page <= pages; page++) {
+			const browseResults = await site.browse(page);
+			const torrents = browseResults.torrents;
+			pages = browseResults.pages;
+			let foundNewTorrents = false;
+			for (let i = 0; i < torrents.length; i++) {
+				const torrent = torrents[i];
+				if (cache.has(torrent.id) === false) {
+					foundNewTorrents = true;
+					cache.add(torrent.id);
+					const matchingSubscriptions: Subscription[] = [];
+					subscriptions.forEach(subscription => {
+						const pattern = new RegExp(subscription.pattern);
+						const match = pattern.exec(torrent.name);
+						if (match != null) {
+							matchingSubscriptions.push(subscription);
+						}
+					});
+					if (matchingSubscriptions.length > 0) {
+						const matchingUserIds = new Set<mongoose.Types.ObjectId>();
+						matchingSubscriptions.forEach(subscription => {
+							matchingUserIds.add(subscription.userId);
+						});
+						const matchingUserIdArray = Array.from(matchingUserIds);
+						let addEllipsis = false;
+						if (matchingUserIdArray.length > Warehouse.maxSubscribersShown) {
+							// Limit the number of matching users in order to avoid flooding and also to reduce the database load.
+							matchingUserIdArray.splice(Warehouse.maxSubscribersShown);
+							addEllipsis = true;
+						}
+						const matchingUsers = await this.database.user.find({
+							_id: {
+								$in: matchingUserIdArray
+							}
+						});
+						const usernames = matchingUsers.map(user => user.name);
+						if (addEllipsis === true) {
+							usernames.push('...');
+						}
+						console.log(`Found ${matchingSubscriptions.length} matching subscription(s) (${usernames.join(', ')}) for new release "${torrent.name}" (ID ${torrent.id}).`);
+						const matchingSubscriptionIds = matchingSubscriptions.map(subscription => subscription._id);
+						const now = new Date();
+						await this.database.subscription.updateMany({
+							_id: {
+								$in: matchingSubscriptionIds
+							}
+						},
+						{
+							$inc: {
+								matches: 1
+							},
+							$set: {
+								lastMatch: now
+							}
+						});
+						let torrentBuffer: Buffer;
+						try {
+							torrentBuffer = await site.download(torrent.id);
+						}
+						catch (error) {
+							console.error(`Failed to download torrent "${torrent.name}" (ID ${torrent.id}): ${error.message}`);
+							continue;
+						}
+						try {
+							await this.transmissionQueueTorrent(torrentBuffer);
+							console.log(`Successfully queued torrent "${torrent.name}".`);
+						}
+						catch (error) {
+							console.error(`Failed to queue torrent "${torrent.name}" (ID ${torrent.id}): ${error.message}`);
+						}
+					}
+					else {
+						console.log(`No matching subscription for new release ${torrent.name} (ID ${torrent.id}).`);
+					}
+				}
+			}
+			if (cacheWasEmpty === true || foundNewTorrents === false) {
+				break;
+			}
 		}
 	}
 }
