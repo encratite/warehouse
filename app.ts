@@ -5,7 +5,6 @@ import minimist from 'minimist';
 import { Warehouse } from './warehouse.js';
 import * as configurationFile from './configuration.js';
 import * as passwordGenerator from './password.js';
-import * as obfuscation from './obfuscation.js';
 
 function main() {
 	const processArguments = process.argv.slice(2);

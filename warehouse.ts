@@ -14,6 +14,7 @@ import { TorrentSite } from './site.js';
 import { TorrentLeech } from './torrentleech.js';
 import * as validate from './validate.js';
 import { generatePassword } from './password.js';
+import * as logging from './logging.js';
 
 interface SessionRequest extends express.Request {
 	user: User;
@@ -57,13 +58,14 @@ export class Warehouse {
 			throw new Error('Service is already running.');
 		}
 		try {
+			await logging.initialize(this.configuration.logPath);
 			await Promise.all([
 				this.initializeWeb(),
 				this.initializeDatabase()
 			]);
 			this.subscriptionInterval = setInterval(this.onSubscriptionIntervalTick.bind(this), this.configuration.subscriptionInterval);
 			this.running = true;
-			console.log(`Listening on ${this.configuration.listenHostname}:${this.configuration.listenPort}.`);
+			logging.log(`Listening on ${this.configuration.listenHostname}:${this.configuration.listenPort}.`);
 		}
 		catch (error) {
 			this.stop();
@@ -121,11 +123,11 @@ export class Warehouse {
 
 	addMiddleware() {
 		this.app.use(
-		  express.json(),
-		  this.originMiddleware.bind(this),
-		  this.sessionMiddleware.bind(this)
+			express.json(),
+			this.originMiddleware.bind(this),
+			this.sessionMiddleware.bind(this)
 		);
-	  }
+	}
 
 	// Check HTTP Origin header to prevent cross-site request forgery.
 	originMiddleware(request: express.Request, response: express.Response, next: () => void) {
@@ -324,7 +326,7 @@ export class Warehouse {
 				totalSize = getSizeResponse.torrents[0].totalSize;
 			}
 			else {
-				console.error(`Failed to determine size of torrent "${addTorrentResponse.name}" (ID ${addTorrentResponse.id}).`);
+				logging.error(`Failed to determine size of torrent "${addTorrentResponse.name}" (ID ${addTorrentResponse.id}).`);
 			}
 			// Log the download in the database.
 			const download = this.database.newDownload(request.session.userId, addTorrentResponse.name, totalSize, true);
@@ -461,8 +463,8 @@ export class Warehouse {
 	async transmissionGetTorrents(ids: number[], fields: string[]): Promise<transmission.GetTorrentResponse> {
 		const options = {
 			arguments: {
-					ids: ids,
-					fields: fields
+				ids: ids,
+				fields: fields
 			},
 			method: 'torrent-get',
 			tag: uuidv1()
@@ -648,75 +650,84 @@ export class Warehouse {
 				if (cache.has(torrent.id) === false) {
 					foundNewTorrents = true;
 					cache.add(torrent.id);
-					const matchingSubscriptions: Subscription[] = [];
-					subscriptions.forEach(subscription => {
-						const pattern = new RegExp(subscription.pattern);
-						const match = pattern.exec(torrent.name);
-						if (match != null) {
-							matchingSubscriptions.push(subscription);
-						}
-					});
-					if (matchingSubscriptions.length > 0) {
-						const matchingUserIds = new Set<mongoose.Types.ObjectId>();
-						matchingSubscriptions.forEach(subscription => {
-							matchingUserIds.add(subscription.userId);
-						});
-						const matchingUserIdArray = Array.from(matchingUserIds);
-						let addEllipsis = false;
-						if (matchingUserIdArray.length > Warehouse.maxSubscribersShown) {
-							// Limit the number of matching users in order to avoid flooding and also to reduce the database load.
-							matchingUserIdArray.splice(Warehouse.maxSubscribersShown);
-							addEllipsis = true;
-						}
-						const matchingUsers = await this.database.user.find({
-							_id: {
-								$in: matchingUserIdArray
-							}
-						});
-						const usernames = matchingUsers.map(user => user.name);
-						if (addEllipsis === true) {
-							usernames.push('...');
-						}
-						console.log(`Found ${matchingSubscriptions.length} matching subscription(s) (${usernames.join(', ')}) for new release "${torrent.name}" (ID ${torrent.id}).`);
-						const matchingSubscriptionIds = matchingSubscriptions.map(subscription => subscription._id);
-						const now = new Date();
-						await this.database.subscription.updateMany({
-							_id: {
-								$in: matchingSubscriptionIds
-							}
-						},
-						{
-							$inc: {
-								matches: 1
-							},
-							$set: {
-								lastMatch: now
-							}
-						});
-						let torrentBuffer: Buffer;
-						try {
-							torrentBuffer = await site.download(torrent.id);
-						}
-						catch (error) {
-							console.error(`Failed to download torrent "${torrent.name}" (ID ${torrent.id}): ${error.message}`);
-							continue;
-						}
-						try {
-							await this.transmissionQueueTorrent(torrentBuffer);
-							console.log(`Successfully queued torrent "${torrent.name}".`);
-						}
-						catch (error) {
-							console.error(`Failed to queue torrent "${torrent.name}" (ID ${torrent.id}): ${error.message}`);
-						}
-					}
-					else {
-						console.log(`No matching subscription for new release ${torrent.name} (ID ${torrent.id}).`);
-					}
+					await this.checkNewTorrent(torrent, subscriptions, site);
 				}
 			}
-			if (cacheWasEmpty === true || foundNewTorrents === false) {
+			if (cacheWasEmpty === true) {
+				break;
+			}
+			else if (foundNewTorrents === false) {
+				logging.log('Found no new torrents.');
 				break;
 			}
 		}
+	}
+
+	async checkNewTorrent(torrent: common.Torrent, subscriptions: Subscription[], site: TorrentSite) {
+		const matchingSubscriptions: Subscription[] = [];
+		subscriptions.forEach(subscription => {
+			const pattern = new RegExp(subscription.pattern);
+			const match = pattern.exec(torrent.name);
+			if (match != null) {
+				matchingSubscriptions.push(subscription);
+			}
+		});
+		if (matchingSubscriptions.length === 0) {
+			await this.onSubscriptionMatch(torrent, matchingSubscriptions, site);
+		}
+		else {
+			logging.log(`No matching subscription for new release ${torrent.name} (ID ${torrent.id}).`);
+		}
+	}
+
+	async onSubscriptionMatch(torrent: common.Torrent, matchingSubscriptions: Subscription[], site: TorrentSite) {
+		await this.printSubscriptionData(torrent, matchingSubscriptions);
+		const matchingSubscriptionIds = matchingSubscriptions.map(subscription => subscription._id);
+		const now = new Date();
+		await this.database.subscription.updateMany({
+			_id: {
+				$in: matchingSubscriptionIds
+			}
+		},
+			{
+				$inc: {
+					matches: 1
+				},
+				$set: {
+					lastMatch: now
+				}
+			});
+		try {
+			const torrentBuffer = await site.download(torrent.id);
+			await this.transmissionQueueTorrent(torrentBuffer);
+			logging.log(`Successfully queued torrent "${torrent.name}".`);
+		}
+		catch (error) {
+			logging.error(`Failed to queue torrent "${torrent.name}" (ID ${torrent.id}): ${error.message}`);
+		}
+	}
+
+	async printSubscriptionData(torrent: common.Torrent, matchingSubscriptions: Subscription[]) {
+		const matchingUserIds = new Set<mongoose.Types.ObjectId>();
+		matchingSubscriptions.forEach(subscription => {
+			matchingUserIds.add(subscription.userId);
+		});
+		const matchingUserIdArray = Array.from(matchingUserIds);
+		let addEllipsis = false;
+		if (matchingUserIdArray.length > Warehouse.maxSubscribersShown) {
+			// Limit the number of matching users in order to avoid flooding and also to reduce the database load.
+			matchingUserIdArray.splice(Warehouse.maxSubscribersShown);
+			addEllipsis = true;
+		}
+		const matchingUsers = await this.database.user.find({
+			_id: {
+				$in: matchingUserIdArray
+			}
+		});
+		const usernames = matchingUsers.map(user => user.name);
+		if (addEllipsis === true) {
+			usernames.push('...');
+		}
+		logging.log(`Found ${matchingSubscriptions.length} matching subscription(s) (${usernames.join(', ')}) for new release "${torrent.name}" (ID ${torrent.id}).`);
 	}
 }

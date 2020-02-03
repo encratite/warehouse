@@ -4,6 +4,7 @@ import transmission from 'transmission';
 import * as obfuscation from './obfuscation.js';
 
 export interface Configuration {
+	logPath: string;
 	listenPort: number;
 	listenHostname: string;
 	externalHostname: string;
