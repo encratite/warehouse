@@ -298,7 +298,10 @@ export class Warehouse {
 		const searchRequest = <common.SearchRequest>request.body;
 		validate.string('site', searchRequest.site);
 		validate.string('query', searchRequest.query);
-		validate.numberArray('categories', searchRequest.categories, true);
+		validate.array('categories', searchRequest.categories, true);
+		searchRequest.categories.forEach(category => {
+			validate.number('categories[i]', category);
+		});
 		validate.number('page', searchRequest.page);
 
 		const site = this.getSite(searchRequest.site);
@@ -729,5 +732,11 @@ export class Warehouse {
 			usernames.push('...');
 		}
 		logging.log(`Found ${matchingSubscriptions.length} matching subscription(s) (${usernames.join(', ')}) for new release "${torrent.name}" (ID ${torrent.id}).`);
+	}
+
+	setInterval(handler: () => void, seconds: number) {
+		const milliseconds = 1000 * seconds;
+		const timeout = setInterval(handler, milliseconds);
+		return timeout;
 	}
 }

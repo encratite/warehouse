@@ -10,19 +10,20 @@ export function boolean(name: string, value: any, permitNull: boolean = false) {
 	checkType(name, value, permitNull, 'boolean');
 }
 
-export function numberArray(name: string, value: any, permitNull: boolean = false) {
+export function object(name: string, value: any, permitNull: boolean = false) {
+	checkType(name, value, permitNull, 'object');
+}
+
+export function array(name: string, value: any, permitNull: boolean = false, permitEmpty: boolean = true) {
 	if (nullCheck(name, value, permitNull) === true) {
 		return;
 	}
 	if (value instanceof Array === false) {
 		throw new Error(`Unexpected type for argument "${name}". Expected an array.`);
 	}
-	value.forEach(element => {
-		const type = typeof value;
-		if (type !== 'number') {
-			throw new Error(`Unexpected type "${type}" in array "${name}". Expected all elements to be numbers.`);
-		}
-	});
+	if (permitEmpty === false && value.length === 0) {
+		throw new Error(`Array "${name}" must not be empty.`)
+	}
 }
 
 function checkType(name: string, value: any, permitNull: boolean, type: string) {
