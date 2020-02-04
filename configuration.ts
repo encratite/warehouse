@@ -28,6 +28,9 @@ export interface Configuration {
 	// Required: No
 	// Default: 180
 	subscriptionInterval: number;
+	// Options pertaining to free disk space checks.
+	// Required: Yes
+	freeDiskSpace: FreeDiskSpaceSettings;
 	// The configuration of sites configured for use with the service.
 	// You must set up at least one site to run the service.
 	// Required: Yes
@@ -48,6 +51,22 @@ export interface Site {
 	// The password required to log into the site.
 	// Required: Yes
 	password: string;
+}
+
+export interface FreeDiskSpaceSettings {
+	// Duration of intervals between successive disk space checks, in seconds.
+	// Required: No
+	// Default: 60
+	interval: number;
+	// Path to use for free disk space checks.
+	// It is recommended that you use the "completed" torrent download directory of the Transmission service.
+	// Required: Yes
+	path: string;
+	// Minimum free disk space on the medium the free disk space check path resides on, in gigabytes
+	// Once this threshold has been reached the service will remove old torrents until enough space is available again.
+	// Required: No
+	// Default: 10
+	min: number;
 }
 
 const configurationPath = 'configuration.json';
@@ -103,6 +122,11 @@ function validateConfiguration(configuration: Configuration) {
 	validate.string('externalHostname', configuration.externalHostname, true);
 	validate.string('mongoDbUri', configuration.mongoDbUri);
 	validate.number('subscriptionInterval', configuration.subscriptionInterval, true);
+	const freeDiskSpace = configuration.freeDiskSpace;
+	validate.object('freeDiskSpace', freeDiskSpace);
+	validate.number('freeDiskSpace.interval', freeDiskSpace.interval, true);
+	validate.string('freeDiskSpace.path', freeDiskSpace.path);
+	validate.number('freeDiskSpace.min', freeDiskSpace.min, true);
 	validate.array('sites', configuration.sites, false, false);
 	configuration.sites.forEach(site => {
 		validate.object('sites[i]', site);
@@ -127,6 +151,9 @@ function setDefaultValues(configuration: Configuration) {
 	configuration.listenHostname = configuration.listenHostname || localhost;
 	configuration.externalHostname = configuration.externalHostname || localhost;
 	configuration.subscriptionInterval = configuration.subscriptionInterval || 180;
+	const freeDiskSpace = configuration.freeDiskSpace;
+	freeDiskSpace.interval = freeDiskSpace.interval || 60;
+	freeDiskSpace.min = freeDiskSpace.min || 10;
 	const transmission = configuration.transmission;
 	transmission.host = transmission.host || localhost;
 	transmission.port = transmission.port || 9091;
