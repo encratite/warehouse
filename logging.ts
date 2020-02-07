@@ -9,24 +9,49 @@ export async function initialize(path: string) {
 }
 
 export async function info(message: string) {
-	console.info(message);
-	await write(message);
+	await write(message, console.info);
 }
 
 export async function log(message: string) {
-	console.log(message);
-	await write(message);
+	await write(message, console.log);
+}
+
+export async function warn(message: string) {
+	await write(message, console.warn);
 }
 
 export async function error(message: string) {
-	console.error(message);
-	await write(message);
+	await write(message, console.error);
 }
 
-async function write(message: string) {
+async function write(message: string, consoleHandler: (message: string) => void) {
+	const timestamp = getTimestamp();
+	const formattedMessage = `${timestamp} ${message}`;
+	consoleHandler(formattedMessage);
 	if (logFileHandle === null) {
 		throw new Error('Logging has not been initialized yet.');
 	}
-	const line = `${message}\n`;
-	await fs.promises.write(logFileHandle, message);
+	const logMessage = `${formattedMessage}\n`;
+	await fs.promises.write(logFileHandle, logMessage);
+}
+
+function getTimestamp() {
+	// Questionable method to generate "yyyy-MM-dd HH:mm:ss"-style timestamps.
+	const now = new Date();
+	const dateOptions = {
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit'
+	};
+	const datePortion = now.toLocaleDateString('ja', dateOptions);
+	const datePortionFormatted = datePortion.replace(/\//g, '-');
+	const timeOptions = {
+		hour: '2-digit',
+		minute: '2-digit',
+		second: '2-digit'
+	};
+	const timePortion = now.toLocaleDateString('en-GB', timeOptions);
+	const timePortionFormatted = timePortion.substring(12);
+	const timestamp = `${datePortionFormatted} ${timePortionFormatted}`;
+	return timestamp;
 }

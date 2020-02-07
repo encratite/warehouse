@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import cookie from 'cookie';
 import transmission from 'transmission';
 import uuidv1 from 'uuid/v1';
+import checkDiskSpace from 'check-disk-space';
 
 import * as configurationFile from './configuration.js';
 import { Database, User, Session, Subscription } from './database.js';
@@ -35,6 +36,8 @@ export class Warehouse {
 
 	static readonly maxSubscribersShown = 5;
 
+	static readonly bytesPerGigabyte = Math.pow(1024, 3);
+
 	configuration: configurationFile.Configuration;
 	running: boolean = false;
 	app: express.Application;
@@ -45,6 +48,7 @@ export class Warehouse {
 	releaseCache: Map<string, Set<number>>;
 	transmission: transmission.TransmissionClient;
 	subscriptionInterval: NodeJS.Timeout;
+	freeDiskSpaceInterval: NodeJS.Timeout;
 
 	constructor(configuration: configurationFile.Configuration) {
 		this.configuration = configuration;
@@ -63,7 +67,7 @@ export class Warehouse {
 				this.initializeWeb(),
 				this.initializeDatabase()
 			]);
-			this.subscriptionInterval = setInterval(this.onSubscriptionIntervalTick.bind(this), this.configuration.subscriptionInterval);
+			this.setIntervals();
 			this.running = true;
 			logging.log(`Listening on ${this.configuration.listenHostname}:${this.configuration.listenPort}.`);
 		}
@@ -503,6 +507,19 @@ export class Warehouse {
 		return addTorrentResponse;
 	}
 
+	async transmissionDeleteTorrents(ids: number[], deleteTorrent: boolean): Promise<void> {
+		await new Promise((resolve, reject) => {
+			this.transmission.remove(ids, deleteTorrent, error => {
+				if (error == null) {
+					resolve();
+				}
+				else {
+					reject(error);
+				}
+			});
+		});
+	}
+
 	getSite(name: string): TorrentSite {
 		const site = this.sites.find(browseSite => browseSite.name === name);
 		if (site == null) {
@@ -628,15 +645,77 @@ export class Warehouse {
 		await this.database.session.findByIdAndDelete(session._id);
 	}
 
-	async onSubscriptionIntervalTick() {
-		const subscriptions = await this.database.subscription.find({});
-		if (subscriptions.length === 0) {
-			// The system does not have any subscriptions yet so there is no reason to poll the sites.
-			return;
+	setIntervals() {
+		this.subscriptionInterval = this.setInterval(this.onSubscriptionTimer.bind(this), this.configuration.subscriptionInterval);
+		this.freeDiskSpaceInterval = this.setInterval(this.onFreeDiskSpaceTimer.bind(this), this.configuration.freeDiskSpace.interval);
+	}
+
+	setInterval(handler: () => void, seconds: number) {
+		const milliseconds = 1000 * seconds;
+		const timeout = setInterval(handler, milliseconds);
+		return timeout;
+	}
+
+	async onSubscriptionTimer() {
+		try {
+			const subscriptions = await this.database.subscription.find({});
+			if (subscriptions.length === 0) {
+				// The system does not have any subscriptions yet so there is no reason to poll the sites.
+				return;
+			}
+			// Run subscription checks in parallel.
+			const checks = this.sites.map(site => this.checkNewTorrents(site, subscriptions));
+			await Promise.all(checks);
 		}
-		// Run subscription checks in parallel.
-		const checks = this.sites.map(site => this.checkNewTorrents(site, subscriptions));
-		await Promise.all(checks);
+		catch (error) {
+			logging.error(`Subscription check failed: ${error.message}`);
+		}
+	}
+
+	async onFreeDiskSpaceTimer() {
+		try {
+			const diskSpaceInfo = await checkDiskSpace(this.configuration.freeDiskSpace.path);
+			const minBytes = Warehouse.bytesPerGigabyte * this.configuration.freeDiskSpace.min;
+			let diskSpaceToFree = Math.floor(minBytes - diskSpaceInfo.free);
+			if (diskSpaceToFree > 0) {
+				// The system is running out of disk space.
+				// Start deleting torrents, commencing with the oldest ones.
+				const response = await this.transmissionGetTorrents(null, [
+					'id',
+					'name',
+					'dateAdded',
+					'totalSize'
+				]);
+				const torrents = response.torrents;
+				if (torrents.length > 0) {
+					torrents.sort((x, y) => x.addedDate - y.addedDate);
+					const torrentsToDelete: transmission.Torrent[] = [];
+					for (let i = 0; i < torrents.length && diskSpaceToFree > 0; i++) {
+						const torrent = torrents[i];
+						torrentsToDelete.push(torrent);
+						diskSpaceToFree -= torrent.totalSize;
+					}
+					const ids = torrentsToDelete.map(torrent => torrent.id);
+					await this.transmissionDeleteTorrents(ids, true);
+					torrentsToDelete.forEach(torrent => {
+						logging.log(`Deleted torrent "${torrent.name}" (${this.getSizeString(torrent.totalSize)}).`);
+					});
+					const newDiskSpaceInfo = await checkDiskSpace(this.configuration.freeDiskSpace.path);
+					logging.log(`Deleted ${torrentsToDelete.length} torrent(s) to free disk space (${this.getSizeString(newDiskSpaceInfo.free)} available).`);
+				}
+				else {
+					logging.warn(`Running out of disk space (${this.getSizeString(diskSpaceInfo.free)} available) without having any torrents in Transmission.`);
+				}
+			}
+		}
+		catch (error) {
+			logging.error(`Free disk space check failed: ${error.message}`);
+		}
+	}
+
+	getSizeString(size: number): string {
+		const gigabytes = size / Warehouse.bytesPerGigabyte;
+		return `${gigabytes.toFixed(2)} GiB`;
 	}
 
 	async checkNewTorrents(site: TorrentSite, subscriptions: Subscription[]) {
@@ -699,7 +778,8 @@ export class Warehouse {
 				$set: {
 					lastMatch: now
 				}
-			});
+			}
+		);
 		try {
 			const torrentBuffer = await site.download(torrent.id);
 			await this.transmissionQueueTorrent(torrentBuffer);
@@ -732,11 +812,5 @@ export class Warehouse {
 			usernames.push('...');
 		}
 		logging.log(`Found ${matchingSubscriptions.length} matching subscription(s) (${usernames.join(', ')}) for new release "${torrent.name}" (ID ${torrent.id}).`);
-	}
-
-	setInterval(handler: () => void, seconds: number) {
-		const milliseconds = 1000 * seconds;
-		const timeout = setInterval(handler, milliseconds);
-		return timeout;
 	}
 }

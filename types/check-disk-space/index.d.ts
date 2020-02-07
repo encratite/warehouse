@@ -1,6 +1,6 @@
-declare function check(path: string): DiskSpace;
+declare function check(path: string): Promise<DiskSpaceInfo>;
 
-declare interface DiskSpace {
+declare interface DiskSpaceInfo {
     diskPath: string;
     free: number;
     size: number;
