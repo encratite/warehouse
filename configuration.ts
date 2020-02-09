@@ -30,6 +30,11 @@ export interface Configuration {
 	subscriptionInterval: number;
 	// Options pertaining to free disk space checks.
 	// Required: Yes
+	// The size limit for torrents queued by users who lack the administrator privilege, in gigabytes.
+	// Affects both subscriptions and manually queued releases.
+	// Required: No
+	// Default: 10
+	torrentSizeLimit: number;
 	freeDiskSpace: FreeDiskSpaceSettings;
 	// The configuration of sites configured for use with the service.
 	// You must set up at least one site to run the service.
@@ -122,6 +127,7 @@ function validateConfiguration(configuration: Configuration) {
 	validate.string('externalHostname', configuration.externalHostname, true);
 	validate.string('mongoDbUri', configuration.mongoDbUri);
 	validate.number('subscriptionInterval', configuration.subscriptionInterval, true);
+	validate.number('torrentSizeLimit', configuration.torrentSizeLimit, true);
 	const freeDiskSpace = configuration.freeDiskSpace;
 	validate.object('freeDiskSpace', freeDiskSpace);
 	validate.number('freeDiskSpace.interval', freeDiskSpace.interval, true);
@@ -151,6 +157,7 @@ function setDefaultValues(configuration: Configuration) {
 	configuration.listenHostname = configuration.listenHostname || localhost;
 	configuration.externalHostname = configuration.externalHostname || localhost;
 	configuration.subscriptionInterval = configuration.subscriptionInterval || 180;
+	configuration.torrentSizeLimit = configuration.torrentSizeLimit || 10;
 	const freeDiskSpace = configuration.freeDiskSpace;
 	freeDiskSpace.interval = freeDiskSpace.interval || 60;
 	freeDiskSpace.min = freeDiskSpace.min || 10;

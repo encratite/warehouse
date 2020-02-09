@@ -115,7 +115,7 @@ export class TorrentLeech implements site.TorrentSite {
 	}
 
 	async login() {
-		const loginResponse = await this.request({
+		const response = await this.request({
 			method: 'POST',
 			url: 'https://www.torrentleech.org/user/account/login/',
 			form: {
@@ -123,10 +123,10 @@ export class TorrentLeech implements site.TorrentSite {
 				password: this.password
 			}
 		});
-		if (loginResponse.statusCode !== 302) {
+		if (response.statusCode !== 302) {
 			throw new Error('Unexpected login status code.');
 		}
-		if (loginResponse.headers.location !== '/') {
+		if (response.headers.location !== '/') {
 			throw new Error('Unexpected login location header.');
 		}
 		this.loggedIn = true;
@@ -146,17 +146,42 @@ export class TorrentLeech implements site.TorrentSite {
 
 	async download(id: number): Promise<Buffer> {
 		await this.loginCheck();
-		const downloadResponse = await this.request({
+		const response = await this.request({
 			url: `https://www.torrentleech.org/download/${id}/${id}.torrent`,
 			encoding: null
 		});
-		if (downloadResponse.statusCode !== 200) {
+		if (response.statusCode !== 200) {
 			throw new Error('Failed to download torrent file.');
 		}
-		if (downloadResponse.headers['content-type'] !== 'application/x-bittorrent') {
+		if (response.headers['content-type'] !== 'application/x-bittorrent') {
 			throw new Error('Unexpected MIME type.');
 		}
-		return downloadResponse.body;
+		return response.body;
+	}
+
+	async getInfo(id: number): Promise<site.TorrentInfo> {
+		await this.loginCheck();
+		const response = await this.request({
+			url: `https://www.torrentleech.org/torrent/${id}`
+		});
+		if (response.statusCode !== 200) {
+			this.loggedIn = false;
+			throw new Error('Failed to retrieve torrents. Check query parameters.');
+		}
+		const name = this.extract('name', /<a .+? href="\/download\/\d+\/(.+?)\.torrent">/, response);
+		const sizeTokens = this.extractAll('size', /<td class="description">Size<\/td><td>([0-9.]+) (KB|MB|GB|TB)<\/td>/, response);
+		const size = this.parseSize(sizeTokens);
+		const seeders = parseInt(this.extract('seeders', /<span class="seeders-text">(\d+)\s*<\/span>/, response));
+		const leechers = parseInt(this.extract('leechers', /<span class="leechers-text">(\d+)<\/span>/, response));
+		const downloads = parseInt(this.extract('downloads', /<td class="description">Downloaded<\/td><td>(\d+).+?<\/td>/, response));
+		const torrentInfo: site.TorrentInfo = {
+			name: name,
+			size: size,
+			seeders: seeders,
+			leechers: leechers,
+			downloads: downloads
+		};
+		return torrentInfo;
 	}
 
 	convertTorrent(jsonTorrent: JsonTorrent): common.Torrent {
@@ -195,14 +220,14 @@ export class TorrentLeech implements site.TorrentSite {
 	async getBrowseResults(baseUrl: string, query: string, categories: number[], page: number): Promise<site.BrowseResults> {
 		await this.loginCheck();
 		const url = this.getBrowseUrl(baseUrl, query, categories, page);
-		const browseRequest = await this.request({
+		const response = await this.request({
 			url: url
 		});
-		if (browseRequest.statusCode !== 200) {
+		if (response.statusCode !== 200) {
 			this.loggedIn = false;
 			throw new Error('Failed to retrieve torrents. Check query parameters.');
 		}
-		const torrentList: JsonTorrentList = JSON.parse(browseRequest.body);
+		const torrentList: JsonTorrentList = JSON.parse(response.body);
 		const torrents: common.Torrent[] = torrentList.torrentList.map(this.convertTorrent.bind(this));
 		const pages = Math.ceil(torrentList.numFound / torrentList.perPage);
 		const browseResults: site.BrowseResults = {
@@ -224,5 +249,35 @@ export class TorrentLeech implements site.TorrentSite {
 			url += `/page/${page}`;
 		}
 		return url;
+	}
+
+	extractAll(name: string, pattern: RegExp, response: any) {
+		const match = pattern.exec(response.body);
+		if (match == null) {
+			throw new Error(`Failed to extract parameter "${name}".`);
+		}
+		return match;
+	}
+
+	extract(name: string, pattern: RegExp, response: any) {
+		const match = this.extractAll(name, pattern, response);
+		return match[1];
+	}
+
+	parseSize(sizeTokens: RegExpExecArray) {
+		const size = parseFloat(sizeTokens[1]);
+		const sizeUnit = sizeTokens[2];
+		const units = [
+			'KB',
+			'MB',
+			'GB',
+			'TB'
+		];
+		const index = units.findIndex(value => value === sizeUnit);
+		if (index === -1) {
+			throw new Error('Unknown size unit.');
+		}
+		const sizeBytes = Math.pow(1024, index + 1) * size;
+		return sizeBytes;
 	}
 }

@@ -319,6 +319,7 @@ export class Warehouse {
 		validate.number('id', downloadRequest.id);
 
 		const site = this.getSite(downloadRequest.site);
+		await this.performSizeCheck(downloadRequest.id, site, request);
 		const torrentFile = await site.download(downloadRequest.id);
 		// Retrieve the current list of torrent IDs to determine if the torrent had already been added.
 		const getIdResponse = await this.transmissionGetTorrents(null, ['id']);
@@ -754,8 +755,14 @@ export class Warehouse {
 				matchingSubscriptions.push(subscription);
 			}
 		});
-		if (matchingSubscriptions.length === 0) {
-			await this.onSubscriptionMatch(torrent, matchingSubscriptions, site);
+		if (matchingSubscriptions.length > 0) {
+			const torrentSizeLimit = this.getTorrentSizeLimit();
+			if (torrent.size <= torrentSizeLimit) {
+				await this.onSubscriptionMatch(torrent, matchingSubscriptions, site);
+			}
+			else {
+				logging.warn(`Ignoring torrent "${torrent.name}" because its size (${this.getSizeString(torrent.size)}) exceeds the system limit of ${this.getSizeString(torrentSizeLimit)}.`);
+			}
 		}
 		else {
 			logging.log(`No matching subscription for new release ${torrent.name} (ID ${torrent.id}).`);
@@ -812,5 +819,20 @@ export class Warehouse {
 			usernames.push('...');
 		}
 		logging.log(`Found ${matchingSubscriptions.length} matching subscription(s) (${usernames.join(', ')}) for new release "${torrent.name}" (ID ${torrent.id}).`);
+	}
+
+	async performSizeCheck(id: number, site: TorrentSite, request: SessionRequest) {
+		if (request.user.isAdmin === false) {
+			// Make sure that the size of the release does not exceed the limit set in the service configuration.
+			const torrentInfo = await site.getInfo(id);
+			const torrentSizeLimit = this.getTorrentSizeLimit();
+			if (torrentInfo.size > torrentSizeLimit) {
+				throw new Error(`The size of the release (${this.getSizeString(torrentInfo.size)}) exceeds the system limit of ${this.getSizeString(torrentSizeLimit)}.`);
+			}
+		}
+	}
+
+	getTorrentSizeLimit(): number {
+		return Warehouse.bytesPerGigabyte * this.configuration.torrentSizeLimit;
 	}
 }
