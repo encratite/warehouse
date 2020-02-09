@@ -74,19 +74,17 @@ export interface FreeDiskSpaceSettings {
 	min: number;
 }
 
-const configurationPath = 'configuration.json';
-
-export async function read(): Promise<Configuration> {
-	const configurationJson = await fs.promises.readFile(configurationPath, 'utf8');
+export async function read(path: string): Promise<Configuration> {
+	const configurationJson = await fs.promises.readFile(path, 'utf8');
 	const configuration = <Configuration>JSON.parse(configurationJson);
 	validateConfiguration(configuration);
 	setDefaultValues(configuration);
 	return configuration;
 }
 
-export async function write(configuration: Configuration) {
+export async function write(configuration: Configuration, path: string) {
 	const configurationJson = JSON.stringify(configuration, null, 4);
-	await fs.promises.writeFile(configurationPath, configurationJson);
+	await fs.promises.writeFile(path, configurationJson);
 }
 
 export function obfuscate(configuration: Configuration) {

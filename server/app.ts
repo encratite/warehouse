@@ -11,36 +11,40 @@ function main() {
 	const parsedArguments = minimist(processArguments);
 
 	const getArgument = (short: string, long: string) => {
+		let output: any = null;
 		if (parsedArguments.hasOwnProperty(short)) {
-			return parsedArguments[short];
+			output = parsedArguments[short];
+			if (typeof output === 'string') {
+				// Workaround for minimist adding a space when using short notation.
+				output = output.trim();
+			}
 		}
 		else if (parsedArguments.hasOwnProperty(long)) {
-			return parsedArguments[long];
+			output = parsedArguments[long];
 		}
-		else {
-			return null;
-		}
+		return output;
 	};
 
 	const serviceArgument = getArgument('s', 'service');
 	const obfuscateArgument = getArgument('o', 'obfuscate');
-	const createArgument = getArgument('c', 'create');
+	const createArgument: string = getArgument('c', 'create');
 	const adminArgument = getArgument('a', 'admin');
-	const deleteArgument = getArgument('d', 'delete');
+	const deleteArgument: string = getArgument('d', 'delete');
+	const configArgument: string = getArgument('C', 'config') || 'configuration.json';
 	const helpArgument = getArgument('h', 'help');
 
 	if (serviceArgument === true) {
-		startService();
+		startService(configArgument);
 	}
 	else if (obfuscateArgument === true) {
-		obfuscateConfiguration();
+		obfuscateConfiguration(configArgument);
 	}
 	else if (createArgument != null) {
 		const isAdmin = adminArgument === true;
-		createUser(createArgument, isAdmin);
+		createUser(createArgument, isAdmin, configArgument);
 	}
 	else if (deleteArgument != null) {
-		deleteUser(deleteArgument);
+		deleteUser(deleteArgument, configArgument);
 	}
 	else if (processArguments.length === 0 || helpArgument != null) {
 		printHelp();
@@ -50,10 +54,10 @@ function main() {
 	}
 }
 
-async function startService() {
+async function startService(configurationPath: string) {
 	try {
-		await obfuscateConfiguration();
-		const warehouse = await getWarehouse();
+		await obfuscateConfiguration(configurationPath);
+		const warehouse = await getWarehouse(configurationPath);
 		await warehouse.start();
 	}
 	catch (error) {
@@ -61,14 +65,14 @@ async function startService() {
 	}
 }
 
-async function obfuscateConfiguration() {
-	const configuration = await configurationFile.read();
+async function obfuscateConfiguration(configurationPath: string) {
+	const configuration = await configurationFile.read(configurationPath);
 	configurationFile.obfuscate(configuration);
-	await configurationFile.write(configuration);
+	await configurationFile.write(configuration, configurationPath);
 }
 
-async function createUser(username: string, isAdmin: boolean) {
-	withWarehouse(async warehouse => {
+async function createUser(username: string, isAdmin: boolean, configurationPath: string) {
+	withWarehouse(configurationPath, async warehouse => {
 		await warehouse.initializeDatabase();
 		const password = passwordGenerator.generatePassword();
 		await warehouse.createUser(username, password, isAdmin);
@@ -76,8 +80,8 @@ async function createUser(username: string, isAdmin: boolean) {
 	});
 }
 
-async function deleteUser(username: string) {
-	withWarehouse(async warehouse => {
+async function deleteUser(username: string, configurationPath: string) {
+	withWarehouse(configurationPath, async warehouse => {
 		await warehouse.initializeDatabase();
 		const success = await warehouse.deleteUser(username);
 		if (success === true) {
@@ -104,22 +108,24 @@ function printHelp() {
 		'  -a, --admin          When creating a new user, make that user an admin.',
 		'                       Only works in combination with -c.',
 		'  -d, --delete=user    Delete a user.',
+		'  -C, --config=path    Set the path to the service configuration file.',
+		'                       The path defaults to "configuration.json".',
 		'  -h, --help           Print help menu.'
 	];
 	const helpText = helpLines.join('\n');
 	console.log(helpText);
 }
 
-async function getWarehouse(): Promise<Warehouse> {
-	const configuration = await configurationFile.read();
+async function getWarehouse(configurationPath: string): Promise<Warehouse> {
+	const configuration = await configurationFile.read(configurationPath);
 	const warehouse = new Warehouse(configuration);
 	return warehouse;
 }
 
-async function withWarehouse(handler: (Warehouse) => Promise<void>) {
+async function withWarehouse(configurationPath: string, handler: (Warehouse) => Promise<void>) {
 	let warehouse: Warehouse = null;
 	try {
-		warehouse = await getWarehouse();
+		warehouse = await getWarehouse(configurationPath);
 		await handler(warehouse);
 	}
 	catch (error) {

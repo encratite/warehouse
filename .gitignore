@@ -1,5 +1,5 @@
 /.vscode
-/.vs
-/node_modules
-/out
+.vs/
+node_modules/
+out/
 configuration.json

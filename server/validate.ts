@@ -31,7 +31,7 @@ function checkType(name: string, value: any, permitNull: boolean, type: string) 
 		return;
 	}
 	const valueType = typeof value;
-	if (valueType !== 'boolean') {
+	if (valueType !== type) {
 		throw new Error(`Unexpected type "${valueType}" for argument "${name}". Expected "${type}".`);
 	}
 }

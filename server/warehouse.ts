@@ -5,7 +5,7 @@ import mongodb from 'mongodb';
 import mongoose from 'mongoose';
 import cookie from 'cookie';
 import transmission from 'transmission';
-import uuidv1 from 'uuid/v1';
+import uuidv1 from 'uuid/v1.js';
 import checkDiskSpace from 'check-disk-space';
 
 import * as configurationFile from './configuration.js';
