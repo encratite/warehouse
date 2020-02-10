@@ -11,18 +11,15 @@ function main() {
 	const parsedArguments = minimist(processArguments);
 
 	const getArgument = (short: string, long: string) => {
-		let output: any = null;
 		if (parsedArguments.hasOwnProperty(short)) {
-			output = parsedArguments[short];
-			if (typeof output === 'string') {
-				// Workaround for minimist adding a space when using short notation.
-				output = output.trim();
-			}
+			return parsedArguments[short];
 		}
 		else if (parsedArguments.hasOwnProperty(long)) {
-			output = parsedArguments[long];
+			return parsedArguments[long];
 		}
-		return output;
+		else {
+			return null;
+		}
 	};
 
 	const serviceArgument = getArgument('s', 'service');
