@@ -1,3 +1,15 @@
+export const route = {
+	login: '/login',
+	logout: '/logout',
+	validateSession: '/validate-session',
+	search: '/search',
+	download: '/download',
+	getTorrents: '/get-torrents',
+	getSubscriptions: '/get-subscriptions',
+	createSubscription: '/create-subscription',
+	deleteSubscription: '/delete-subscription'
+};
+
 export interface ErrorResponse {
 	error: string;
 }

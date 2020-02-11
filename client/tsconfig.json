@@ -2,10 +2,8 @@
   "compilerOptions": {
     "target": "ES2018",
     "module": "ES2015",
-    "outDir": "web/scripts",
+    "outDir": "scripts",
+    "sourceMap": true,
     "moduleResolution": "node"
-  },
-  "include": [
-    "../server/common.ts"
-  ]
+  }
 }

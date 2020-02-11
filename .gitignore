@@ -1,6 +1,8 @@
 /.vscode
-.vs/
-node_modules/
-out/
-scripts/
-configuration.json
+/.vs
+/node_modules
+/server/out
+/server/common.ts
+/server/configuration.json
+/client/scripts
+/client/source/common.ts

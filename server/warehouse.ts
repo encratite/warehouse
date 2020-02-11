@@ -173,15 +173,16 @@ export class Warehouse {
 	}
 
 	addRoutes() {
-		this.addRoute('/login', this.login.bind(this), true);
-		this.addRoute('/logout', this.logout.bind(this));
-		this.addRoute('/validate-session', this.validateSession.bind(this), true);
-		this.addRoute('/search', this.search.bind(this));
-		this.addRoute('/download', this.download.bind(this));
-		this.addRoute('/get-torrents', this.getTorrents.bind(this));
-		this.addRoute('/get-subscriptions', this.getSubscriptions.bind(this));
-		this.addRoute('/create-subscription', this.createSubscription.bind(this));
-		this.addRoute('/delete-subscription', this.deleteSubscription.bind(this));
+		const route = common.route;
+		this.addRoute(route.login, this.login.bind(this), true);
+		this.addRoute(route.logout, this.logout.bind(this));
+		this.addRoute(route.validateSession, this.validateSession.bind(this), true);
+		this.addRoute(route.search, this.search.bind(this));
+		this.addRoute(route.download, this.download.bind(this));
+		this.addRoute(route.getTorrents, this.getTorrents.bind(this));
+		this.addRoute(route.getSubscriptions, this.getSubscriptions.bind(this));
+		this.addRoute(route.createSubscription, this.createSubscription.bind(this));
+		this.addRoute(route.deleteSubscription, this.deleteSubscription.bind(this));
 	}
 
 	addRoute(path: string, handler: (request: express.Request, response: express.Response) => Promise<void>, whitelistPath: boolean = false) {
