@@ -1,0 +1,22 @@
+#!/bin/bash
+
+if [ ! -f client/source/common.ts ]; then
+	echo "Creating symlink to common.ts for client."
+	ln ../../common/common.ts client/source/common.ts
+fi
+
+if [ ! -f server/common.ts ]; then
+	echo "Creating symlink to common.ts for server."
+	ln ../common/common.ts server/common.ts
+fi
+
+if [ ! -d node_modules ]; then
+	echo "Downloading node modules."
+	npm install
+fi
+
+echo "Compiling client."
+node_modules/.bin/tsc -p client/tsconfig.json
+
+echo "Compiling server."
+node_modules/.bin/tsc -p server/tsconfig.json
