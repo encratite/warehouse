@@ -49,7 +49,7 @@ export async function deleteSubscription(request: common.CreateSubscriptionReque
 
 async function performRequest<ResponseType>(path: string, request: any): Promise<ResponseType> {
 	const xmlHttpRequest = new XMLHttpRequest();
-	xmlHttpRequest.open('POST', path);
+	xmlHttpRequest.open('POST', `/api${path}`);
 	xmlHttpRequest.setRequestHeader('Content-Type', 'application/json');
 	const body = JSON.stringify(request);
 	xmlHttpRequest.send(body);

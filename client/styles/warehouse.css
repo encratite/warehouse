@@ -1,0 +1,43 @@
+* {
+    font-family: 'Roboto', sans-serif;
+    font-size: 16px;
+}
+
+h1 {
+    font-size: 130%;
+    margin-left: 1em;
+}
+
+input {
+    border-radius: 4px;
+}
+
+#login {
+    width: 25em;
+    border: 1px solid #808080;
+    border-radius: 15px;
+    padding: 1.5em;
+    margin: 5em auto 0 auto;
+}
+
+#login input, button {
+    font-size: 115%;
+}
+
+#login input {
+    border: 1px solid #808080;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 1em;
+    padding: 0.35em;
+}
+
+#login button {
+    padding: 0.35em;
+    float: right;
+    width: 6em;
+}
+
+.loginContainer {
+    overflow: hidden;
+}
