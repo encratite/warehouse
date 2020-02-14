@@ -2,22 +2,22 @@
 <html>
     <head>
         <title>Warehouse</title>
-        <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css?family=Noto+Sans&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="styles/warehouse.css">
         <script type="module" src="scripts/client.js"></script>
     </head>
     <body>
         <div id="login">
-            <h1>Login</h1>
+            <h1>Log in</h1>
             <div>
-                <input type="text" class="username" placeholder="Username">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter your username">
             </div>
             <div>
-                <input type="password" class="password" placeholder="Password">
+                <label for="passsword">Password</label>
+                <input type="password" id="password" placeholder="Enter your password">
             </div>
-            <div class="loginContainer">
-                <button class="login">Sign in</button>
-            </div>
+            <button class="login">Submit</button>
         </div>
     </body>
 </html>
