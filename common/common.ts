@@ -2,6 +2,7 @@ export const route = {
 	login: '/login',
 	logout: '/logout',
 	validateSession: '/validate-session',
+	getSites: '/get-sites',
 	search: '/search',
 	download: '/download',
 	getTorrents: '/get-torrents',
@@ -27,6 +28,10 @@ export interface ValidateSessionResponse {
 	valid: boolean;
 }
 
+export interface GetSitesResponse {
+	sites: Site[];
+}
+
 export interface SearchRequest {
 	site: string;
 	query: string;
@@ -44,7 +49,7 @@ export interface DownloadRequest {
 	id: number;
 }
 
-export interface GetTorrentResponse {
+export interface GetTorrentsResponse {
 	torrents: TorrentState[];
 }
 
@@ -73,6 +78,16 @@ export interface CreateSubscriptionResponse {
 
 export interface DeleteSubscriptionRequest {
 	subscriptionId: string;
+}
+
+export interface Site {
+	name: string;
+	categories: Category[];
+}
+
+export interface Category {
+	id: number;
+	name: string;
 }
 
 export interface Torrent {

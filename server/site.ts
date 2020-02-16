@@ -1,10 +1,9 @@
 import { Site } from './configuration.js';
-import { Torrent } from './common.js';
+import { Category, Torrent } from './common.js';
 
 export interface TorrentSite {
 	name: string;
-	// Maps numeric category IDs to category names.
-	categories: Map<number, string>;
+	categories: Category[];
 
 	initialize(settings: Site);
 	login();

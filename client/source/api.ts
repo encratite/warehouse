@@ -18,6 +18,12 @@ export async function validateSession(): Promise<common.ValidateSessionResponse>
 	return response;
 }
 
+export async function getSites(): Promise<common.GetSitesResponse> {
+	const request = {};
+	const response = await performRequest<common.GetSitesResponse>(route.getSites, request);
+	return response;
+}
+
 export async function search(request: common.SearchRequest): Promise<common.SearchResponse> {
 	const response = await performRequest<common.SearchResponse>(route.search, request);
 	return response;
@@ -27,9 +33,9 @@ export async function download(request: common.DownloadRequest) {
 	await performRequest<void>(route.download, request);
 }
 
-export async function getTorrents(): Promise<common.GetTorrentResponse> {
+export async function getTorrents(): Promise<common.GetTorrentsResponse> {
 	const request = {};
-	const response = await performRequest<common.GetTorrentResponse>(route.getTorrents, request);
+	const response = await performRequest<common.GetTorrentsResponse>(route.getTorrents, request);
 	return response;
 }
 

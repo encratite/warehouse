@@ -177,6 +177,7 @@ export class Warehouse {
 		this.addRoute(route.login, this.login.bind(this), true);
 		this.addRoute(route.logout, this.logout.bind(this));
 		this.addRoute(route.validateSession, this.validateSession.bind(this), true);
+		this.addRoute(route.getSites, this.getSites.bind(this));
 		this.addRoute(route.search, this.search.bind(this));
 		this.addRoute(route.download, this.download.bind(this));
 		this.addRoute(route.getTorrents, this.getTorrents.bind(this));
@@ -299,6 +300,19 @@ export class Warehouse {
 		response.send(validateSessionResponse);
 	}
 
+	async getSites(request: express.Request, response: express.Response) {
+		const sites: common.Site[] = this.sites.map(site => {
+			return {
+				name: site.name,
+				categories: site.categories
+			};
+		});
+		const getSitesResponse: common.GetSitesResponse = {
+			sites: sites
+		};
+		response.send(getSitesResponse);
+	}
+
 	async search(request: SessionRequest, response: express.Response) {
 		const searchRequest = <common.SearchRequest>request.body;
 		validate.string('site', searchRequest.site);
@@ -358,10 +372,10 @@ export class Warehouse {
 			'totalSize'
 		]);
 		const torrentStates = torrentResponse.torrents.map(torrent => this.convertTorrent(torrent));
-		const getTorrentResponse: common.GetTorrentResponse = {
+		const getTorrentsResponse: common.GetTorrentsResponse = {
 			torrents: torrentStates
 		};
-		response.send(getTorrentResponse);
+		response.send(getTorrentsResponse);
 	}
 
 	async getSubscriptions(request: SessionRequest, response: express.Response) {
