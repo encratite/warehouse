@@ -3,6 +3,11 @@
     font-size: 14px;
 }
 
+body {
+    margin: 0;
+    padding: 0;
+}
+
 h1 {
     font-size: 140%;
     margin-top: 0;
@@ -15,7 +20,7 @@ label {
     margin-left: 0.1em;
 }
 
-input {
+input.form {
     padding: 0.35em;
     box-sizing: border-box;
     border: 1px solid #a6a6a6;
@@ -26,8 +31,25 @@ input {
 }
 
 button {
+    cursor: pointer;
+}
+
+button.button {
     padding: 0.35em;
     background: linear-gradient(to bottom, #f7f8fa, #e7e9ec);
+    border-radius: 3px;
+    border-color: #adb1b8 #a2a6ac #8d9096;
+    border-style: solid;
+    border-width: 1px;
+}
+
+button.button:hover {
+    background: linear-gradient(to bottom, #e7eaf0, #d9dce1);
+}
+
+button.primary {
+    padding: 0.35em;
+    background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
     border-radius: 3px;
     border-color: #adb1b8 #a2a6ac #8d9096;
     border-style: solid;
@@ -35,8 +57,65 @@ button {
     cursor: pointer;
 }
 
-button:hover {
-    background: linear-gradient(to bottom, #e7eaf0, #d9dce1);
+button.primary:hover {
+    background: linear-gradient(to bottom, #f5d78e, #eeb933);
+}
+
+#menu {
+    background-color: rgb(35, 47, 62);
+    padding: 1em;
+}
+
+#menu ul {
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    min-width: 40em;
+    max-width: 65em;
+    margin: 0 auto;
+    padding: 0;
+}
+
+#menu li {
+    display: inline;
+    color: #ccc;
+    cursor: pointer;
+    vertical-align: center;
+    margin: 0 1em;
+}
+
+#menu li:hover {
+    color: #fff;
+}
+
+#menu .search {
+    flex: 1 15em;
+    display: flex;
+    align-items: stretch;
+}
+
+#menu .search input {
+    flex: 1 3em;
+    border: none;
+    height: 2em;
+    padding: 0.2em 0.8em 0.2em 0.8em;
+    border-radius: 0.3em 0 0 0.3em;
+}
+
+#menu .search button {
+    flex: 0 2.7em;
+    border: none;
+    background-color: #febd69;
+    border-radius: 0 0.3em 0.3em 0;
+}
+
+#menu .search button:hover {
+    background-color: #f3a847;
+}
+
+#menu li:last-child {
+    flex: 0.3 5em;
+    text-align: right;
 }
 
 #login {

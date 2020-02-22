@@ -3,34 +3,37 @@
     <head>
         <title>Warehouse</title>
         <link href="https://fonts.googleapis.com/css?family=Noto+Sans&display=swap" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/fontawesome.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/solid.min.css" rel="stylesheet">
         <link rel="stylesheet" href="styles/warehouse.css">
         <script type="module" src="scripts/client.js"></script>
     </head>
     <body>
-        <!--
         <div id="menu">
             <ul>
                 <li>Browse</li>
                 <li>Subscriptions</li>
                 <li>Torrents</li>
-            </ul>
-            <input type="text" placeholder="Search">
-            <ul>
+                <li class="search">
+                    <input type="text" placeholder="Search">
+                    <button>
+                        <i class="fas fa-search"></i>
+                    </button>
+                </li>
                 <li>Logout</li>
             </ul>
         </div>
-        -->
         <div id="login">
             <h1>Log in</h1>
             <div>
                 <label for="username">Username</label>
-                <input type="text" id="username" placeholder="Enter your username">
+                <input type="text" id="username" class="form" placeholder="Enter your username">
             </div>
             <div>
                 <label for="passsword">Password</label>
-                <input type="password" id="password" placeholder="Enter your password">
+                <input type="password" id="password" class="form" placeholder="Enter your password">
             </div>
-            <button class="login">Submit</button>
+            <button class="primary">Submit</button>
         </div>
     </body>
 </html>
