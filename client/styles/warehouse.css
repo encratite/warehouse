@@ -112,6 +112,11 @@ th {
     color: #fff;
 }
 
+#menu .logo img {
+    width: 10em;
+    margin-top: 0.62em;
+}
+
 #menu .search {
     flex: 1 15em;
     display: flex;
