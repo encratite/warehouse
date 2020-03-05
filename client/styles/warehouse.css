@@ -66,10 +66,21 @@ th {
 }
 
 #login {
+    margin: 1em auto 0 auto;
     width: 20em;
+}
+
+#login .logo {
+    text-align: center;
+    margin-bottom: 1em;
+}
+
+#login .logo img {
+    width: 12em;
+}
+
+#login .loginForm {
     padding: 1.5em 2em 2em 2em;
-    margin: 5em auto 0 auto;
-    display: none;
     border-radius: 4px;
     border: 1px #ddd solid;
 }
@@ -88,6 +99,7 @@ th {
     background-color: rgb(35, 47, 62);
     padding: 1em;
     margin-bottom: 4em;
+    display: none;
 }
 
 #menu ul {
@@ -140,6 +152,10 @@ th {
 
 #menu .search button:hover {
     background-color: #f3a847;
+}
+
+#torrents {
+    display: none;
 }
 
 #torrents table {
