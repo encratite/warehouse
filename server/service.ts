@@ -22,7 +22,7 @@ interface SessionRequest extends express.Request {
 	session: Session;
 }
 
-export class Warehouse {
+export class Service {
 	static readonly cryptoSaltLength = 32;
 	static readonly cryptoKeyLength = 64;
 	static readonly cryptoParallelization = 4;
@@ -207,7 +207,7 @@ export class Warehouse {
 	}
 
 	async createUser(username: string, password: string, isAdmin: boolean) {
-		const salt = crypto.randomBytes(Warehouse.cryptoSaltLength);
+		const salt = crypto.randomBytes(Service.cryptoSaltLength);
 		const passwordHash = await this.hashPassword(password, salt);
 		const user = this.database.newUser(username, salt, passwordHash, isAdmin);
 		try {
@@ -231,10 +231,10 @@ export class Warehouse {
 	async hashPassword(password: string, salt: Buffer): Promise<Buffer> {
 		// Use default CPU/memory cost and blocksize parameters but increase parallelization.
 		const scryptOptions: crypto.ScryptOptions = {
-			p: Warehouse.cryptoParallelization
+			p: Service.cryptoParallelization
 		};
 		const passwordHash = await new Promise<Buffer>((resolve, reject) => {
-			crypto.scrypt(password, salt, Warehouse.cryptoKeyLength, scryptOptions, (error, derivedKey) => {
+			crypto.scrypt(password, salt, Service.cryptoKeyLength, scryptOptions, (error, derivedKey) => {
 				if (error == null) {
 					resolve(derivedKey);
 				}
@@ -573,7 +573,7 @@ export class Warehouse {
 	}
 
 	async createSession(request: express.Request, response: express.Response, user: User) {
-		const sessionId = crypto.randomBytes(Warehouse.sessionIdLength);
+		const sessionId = crypto.randomBytes(Service.sessionIdLength);
 		const address = this.getAddress(request);
 		const userAgent = this.getUserAgent(request);
 		const session = this.database.newSession(user._id, sessionId, address, userAgent);
@@ -581,19 +581,19 @@ export class Warehouse {
 		await this.deleteOldSessions(user);
 		user.lastLogin = new Date();
 		await user.save();
-		const sessionIdString = sessionId.toString(Warehouse.sessionIdEncoding);
+		const sessionIdString = sessionId.toString(Service.sessionIdEncoding);
 		const cookieOptions: express.CookieOptions = {
-			maxAge: Warehouse.sessionMaxAge,
+			maxAge: Service.sessionMaxAge,
 			httpOnly: true
 		};
-		response.cookie(Warehouse.sessionCookieName, sessionIdString, cookieOptions);
+		response.cookie(Service.sessionCookieName, sessionIdString, cookieOptions);
 	}
 
 	async deleteOldSessions(user: User) {
 		const userSessions = await this.database.session.find({
 			userId: user._id
 		});
-		const sessionsToDelete = userSessions.length - Warehouse.maxSessionsPerUser;
+		const sessionsToDelete = userSessions.length - Service.maxSessionsPerUser;
 		if (sessionsToDelete > 0) {
 			userSessions.sort((a, b) => a.lastAccess.getTime() - b.lastAccess.getTime());
 			const userSessionsToDelete = userSessions.filter((_, i) => i < sessionsToDelete)
@@ -612,13 +612,13 @@ export class Warehouse {
 			return null;
 		}
 		const cookies = cookie.parse(requestCookies);
-		const sessionIdString = cookies[Warehouse.sessionCookieName];
+		const sessionIdString = cookies[Service.sessionCookieName];
 		if (sessionIdString == null) {
 			return null;
 		}
 		let sessionId: Buffer;
 		try {
-			sessionId = Buffer.from(sessionIdString, Warehouse.sessionIdEncoding);
+			sessionId = Buffer.from(sessionIdString, Service.sessionIdEncoding);
 		}
 		catch {
 			return null;
@@ -633,7 +633,7 @@ export class Warehouse {
 		}
 		const now = new Date();
 		const sessionAge = (now.getTime() - session.lastAccess.getTime()) / 1000;
-		if (sessionAge >= Warehouse.sessionMaxAge) {
+		if (sessionAge >= Service.sessionMaxAge) {
 			// The session has expired, delete it.
 			await this.deleteSession(session);
 			return null;
@@ -691,7 +691,7 @@ export class Warehouse {
 	async onFreeDiskSpaceTimer() {
 		try {
 			const diskSpaceInfo = await checkDiskSpace(this.configuration.freeDiskSpace.path);
-			const minBytes = Warehouse.bytesPerGigabyte * this.configuration.freeDiskSpace.min;
+			const minBytes = Service.bytesPerGigabyte * this.configuration.freeDiskSpace.min;
 			let diskSpaceToFree = Math.floor(minBytes - diskSpaceInfo.free);
 			if (diskSpaceToFree > 0) {
 				// The system is running out of disk space.
@@ -730,7 +730,7 @@ export class Warehouse {
 	}
 
 	getSizeString(size: number): string {
-		const gigabytes = size / Warehouse.bytesPerGigabyte;
+		const gigabytes = size / Service.bytesPerGigabyte;
 		return `${gigabytes.toFixed(2)} GiB`;
 	}
 
@@ -819,9 +819,9 @@ export class Warehouse {
 		});
 		const matchingUserIdArray = Array.from(matchingUserIds);
 		let addEllipsis = false;
-		if (matchingUserIdArray.length > Warehouse.maxSubscribersShown) {
+		if (matchingUserIdArray.length > Service.maxSubscribersShown) {
 			// Limit the number of matching users in order to avoid flooding and also to reduce the database load.
-			matchingUserIdArray.splice(Warehouse.maxSubscribersShown);
+			matchingUserIdArray.splice(Service.maxSubscribersShown);
 			addEllipsis = true;
 		}
 		const matchingUsers = await this.database.user.find({
@@ -848,6 +848,6 @@ export class Warehouse {
 	}
 
 	getTorrentSizeLimit(): number {
-		return Warehouse.bytesPerGigabyte * this.configuration.torrentSizeLimit;
+		return Service.bytesPerGigabyte * this.configuration.torrentSizeLimit;
 	}
 }
