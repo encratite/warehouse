@@ -1,4 +1,5 @@
 import * as api from './api.js';
+import { LoginRequest } from './common.js';
 
 export class Client {
     async start() {
@@ -9,17 +10,28 @@ export class Client {
     async validateSession() {
         const response = await api.validateSession();
         if (response.valid === true) {
-            this.show('menu');
-            this.show('torrents');
+            await this.showTorrents();
         }
         else {
-            this.show('login');
+            this.showLogin();
         }
     }
 
-    show(id: string) {
+    show(id: string, show: boolean = true) {
         const element = document.getElementById(id);
-        element.style.display = 'block';
+        this.showElement(element, show);
+    }
+
+    hide(id: string) {
+        this.show(id, false);
+    }
+
+    showElement(element: HTMLElement, show: boolean = true) {
+        element.style.display = show === true ? 'block' : 'none';
+    }
+
+    hideElement(element: HTMLElement) {
+        this.showElement(element, false);
     }
 
     initializeInterface() {
@@ -34,22 +46,19 @@ export class Client {
             const inputElement = <HTMLInputElement>element;
             inputElement.onkeypress = this.onLoginKeyPress.bind(this);
         });
-        const loginButton = <HTMLButtonElement>document.querySelector('#login button');
+        const loginButton = document.querySelector<HTMLButtonElement>('#login button');
         loginButton.onclick = this.onLoginClick.bind(this);
     }
 
     initializeMenu() {
-        const inputElement = <HTMLInputElement>document.querySelector('#menu input');
+        const inputElement = document.querySelector<HTMLInputElement>('#menu input');
         inputElement.onkeypress = this.onSearchKeyPress.bind(this);
-        const searchButton = <HTMLButtonElement>document.querySelector('#menu button');
+        const searchButton = document.querySelector<HTMLButtonElement>('#menu button');
         searchButton.onclick = this.onSearchClick.bind(this);
     }
 
     initializeTorrents() {
-        const torrentTable = <HTMLTableElement>document.querySelector('#torrents table');
-        for (let child = torrentTable.firstChild; child != null; child = torrentTable.firstChild) {
-            torrentTable.removeChild(child);
-        }
+        this.clearTorrents();
     }
 
     onLoginKeyPress(e: KeyboardEvent) {
@@ -75,12 +84,54 @@ export class Client {
     isEnterKey(e: KeyboardEvent) {
         return e.code === 'Enter';
     }
+
+    showLogin() {
+        this.showLoginError(false);
+        this.show('login');
+    }
+
+    showLoginError(show: boolean) {
+        const errorBox = document.querySelector<HTMLDivElement>('#login .error');
+        this.showElement(errorBox, show);
+    }
     
-    login() {
-        throw new Error('Not implemented.');
+    async login() {
+        const username = this.getInputValue('username');
+        const password = this.getInputValue('password');
+        const loginRequest: LoginRequest = {
+            username: username,
+            password: password
+        };
+        const loginResult = await api.login(loginRequest);
+        if (loginResult.success === true) {
+            this.hide('login');
+            await this.showTorrents();
+        }
+        else {
+            this.showLoginError(true);
+        }
+    }
+
+    getInputValue(id: string) {
+        const input = <HTMLInputElement>document.getElementById(id);
+        return input.value;
     }
 
     search() {
         throw new Error('Not implemented.');
+    }
+
+    async showTorrents() {
+        this.clearTorrents();
+        this.show('menu');
+        this.show('torrents');
+        throw new Error('Not implemented.');
+    }
+
+    clearTorrents() {
+        const torrentTable = document.querySelector<HTMLTableElement>('#torrents table');
+        for (let child = torrentTable.firstChild; child != null; child = torrentTable.firstChild) {
+            torrentTable.removeChild(child);
+        }
     }
 }
