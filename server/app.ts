@@ -2,7 +2,7 @@ import path from 'path';
 import process from 'process';
 import minimist from 'minimist';
 
-import { Service } from './service.js';
+import { Server } from './server.js';
 import * as configurationFile from './configuration.js';
 import * as passwordGenerator from './password.js';
 
@@ -113,14 +113,14 @@ function printHelp() {
 	console.log(helpText);
 }
 
-async function getWarehouse(configurationPath: string): Promise<Service> {
+async function getWarehouse(configurationPath: string): Promise<Server> {
 	const configuration = await configurationFile.read(configurationPath);
-	const warehouse = new Service(configuration);
+	const warehouse = new Server(configuration);
 	return warehouse;
 }
 
 async function withWarehouse(configurationPath: string, handler: (Warehouse) => Promise<void>) {
-	let warehouse: Service = null;
+	let warehouse: Server = null;
 	try {
 		warehouse = await getWarehouse(configurationPath);
 		await handler(warehouse);

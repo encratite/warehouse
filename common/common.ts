@@ -3,6 +3,7 @@ export const route = {
 	logout: '/logout',
 	validateSession: '/validate-session',
 	getSites: '/get-sites',
+	browse: '/browse',
 	search: '/search',
 	download: '/download',
 	getTorrents: '/get-torrents',
@@ -32,16 +33,21 @@ export interface GetSitesResponse {
 	sites: Site[];
 }
 
+export interface BrowseRequest {
+	site: string;
+	page: number;
+}
+
+export interface BrowseResponse {
+	torrents: Torrent[];
+	pages: number;
+}
+
 export interface SearchRequest {
 	site: string;
 	query: string;
 	categories: number[];
 	page: number;
-}
-
-export interface SearchResponse {
-	torrents: Torrent[];
-	pages: number;
 }
 
 export interface DownloadRequest {

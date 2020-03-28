@@ -1,7 +1,9 @@
 import * as api from './api.js';
-import { LoginRequest } from './common.js';
+import * as common from './common.js';
 
 export class Client {
+    sites: common.Site[];
+
     async start() {
         this.initializeInterface();
         this.validateSession();
@@ -10,6 +12,11 @@ export class Client {
     async validateSession() {
         const response = await api.validateSession();
         if (response.valid === true) {
+            const sitesResponse = await api.getSites();
+            if (sitesResponse.sites.length === 0) {
+                throw new Error('Server returned no sites.');
+            }
+            this.sites = sitesResponse.sites;
             await this.showTorrents();
         }
         else {
@@ -34,10 +41,15 @@ export class Client {
         this.showElement(element, false);
     }
 
+    removeChildren(element: HTMLElement) {
+        for (let child = element.firstChild; child != null; child = element.firstChild) {
+            element.removeChild(child);
+        }
+    }
+
     initializeInterface() {
         this.initializeLogin();
         this.initializeMenu();
-        this.initializeTorrents();
     }
 
     initializeLogin() {
@@ -55,10 +67,6 @@ export class Client {
         inputElement.onkeypress = this.onSearchKeyPress.bind(this);
         const searchButton = document.querySelector<HTMLButtonElement>('#menu button');
         searchButton.onclick = this.onSearchClick.bind(this);
-    }
-
-    initializeTorrents() {
-        this.clearTorrents();
     }
 
     onLoginKeyPress(e: KeyboardEvent) {
@@ -98,7 +106,7 @@ export class Client {
     async login() {
         const username = this.getInputValue('username');
         const password = this.getInputValue('password');
-        const loginRequest: LoginRequest = {
+        const loginRequest: common.LoginRequest = {
             username: username,
             password: password
         };
@@ -122,16 +130,104 @@ export class Client {
     }
 
     async showTorrents() {
-        this.clearTorrents();
+        const torrentTable = document.querySelector<HTMLTableElement>('#torrents table');
+        this.removeCells(torrentTable);
         this.show('menu');
         this.show('torrents');
-        throw new Error('Not implemented.');
+        // To do: show loading indicator instead of empty table.
+        const firstSite = this.sites[0];
+        const browseRequest: common.BrowseRequest = {
+            site: firstSite.name,
+            page: 1
+        };
+        const browseResult = await api.browse(browseRequest);
+        this.renderTorrents(browseResult.torrents, firstSite, torrentTable);
     }
 
-    clearTorrents() {
-        const torrentTable = document.querySelector<HTMLTableElement>('#torrents table');
-        for (let child = torrentTable.firstChild; child != null; child = torrentTable.firstChild) {
-            torrentTable.removeChild(child);
+    removeCells(table: HTMLTableElement) {
+        const cells = table.querySelectorAll('td');
+        cells.forEach(cell => {
+            table.removeChild(cell);
+        });
+    }
+
+    renderTorrents(torrents: common.Torrent[], site: common.Site, table: HTMLTableElement) {
+        torrents.forEach(torrent => {
+            const categoryName = this.getCategoryName(torrent.categoryId, site);
+            const sizeString = this.getSizeString(torrent.size);
+            const localeDateString = this.getLocaleDateString(torrent.added);
+            const cellStrings = [
+                categoryName,
+                torrent.name,
+                sizeString,
+                torrent.downloads.toString(),
+                torrent.seeders.toString(),
+                torrent.leechers.toString(),
+                localeDateString
+            ];
+            const torrentNameIndex = 1;
+            const cells = cellStrings.map((cellString, i) => {
+                const cell = document.createElement('td');
+                if (i === torrentNameIndex) {
+                    const span = document.createElement('span');
+                    span.innerText = cellString;
+                    cell.appendChild(span);
+                }
+                else {
+                    cell.innerText = cellString;
+                }
+                return cell;
+            });
+            const row = document.createElement('tr');
+            cells.forEach(cell => {
+                row.appendChild(cell);
+            });
+            table.appendChild(row);
+        });
+    }
+
+    getCategoryName(categoryId: number, site: common.Site) {
+        const category = site.categories.find(category => category.id === categoryId);
+        if (category != null) {
+            return category.name;
         }
+        else {
+            return 'Unknown';
+        }
+    }
+
+    getSizeString(bytes: number) {
+        const units = [
+            'KiB',
+            'MiB',
+            'GiB'
+        ];
+        let size = bytes;
+        let unit: string = null;
+        const base = 1024;
+        for (let i = 0; i < units.length; i++) {
+            unit = units[i];
+            size /= base;
+            if (size < base) {
+                break;
+            }
+        }
+        const sizeString = `${size.toFixed(2)} ${unit}`;
+        return sizeString;
+    }
+
+    getLocaleDateString(dateString: string) {
+        const date = new Date(dateString);
+        const numeric = 'numeric';
+        const options = {
+            year: numeric,
+            month: numeric,
+            day: numeric,
+            hour: numeric,
+            minute: numeric,
+            second: numeric
+        };
+        const localeDateString = date.toLocaleDateString(undefined, options);
+        return localeDateString;
     }
 }

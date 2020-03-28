@@ -24,8 +24,13 @@ export async function getSites(): Promise<common.GetSitesResponse> {
 	return response;
 }
 
-export async function search(request: common.SearchRequest): Promise<common.SearchResponse> {
-	const response = await performRequest<common.SearchResponse>(route.search, request);
+export async function browse(request: common.BrowseRequest): Promise<common.BrowseResponse> {
+	const response = await performRequest<common.BrowseResponse>(route.browse, request);
+	return response;
+}
+
+export async function search(request: common.SearchRequest): Promise<common.BrowseResponse> {
+	const response = await performRequest<common.BrowseResponse>(route.search, request);
 	return response;
 }
 

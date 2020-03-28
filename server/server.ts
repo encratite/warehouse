@@ -22,7 +22,7 @@ interface SessionRequest extends express.Request {
 	session: Session;
 }
 
-export class Service {
+export class Server {
 	static readonly cryptoSaltLength = 32;
 	static readonly cryptoKeyLength = 64;
 	static readonly cryptoParallelization = 4;
@@ -178,6 +178,7 @@ export class Service {
 		this.addRoute(route.logout, this.logout.bind(this));
 		this.addRoute(route.validateSession, this.validateSession.bind(this), true);
 		this.addRoute(route.getSites, this.getSites.bind(this));
+		this.addRoute(route.browse, this.browse.bind(this));
 		this.addRoute(route.search, this.search.bind(this));
 		this.addRoute(route.download, this.download.bind(this));
 		this.addRoute(route.getTorrents, this.getTorrents.bind(this));
@@ -207,7 +208,7 @@ export class Service {
 	}
 
 	async createUser(username: string, password: string, isAdmin: boolean) {
-		const salt = crypto.randomBytes(Service.cryptoSaltLength);
+		const salt = crypto.randomBytes(Server.cryptoSaltLength);
 		const passwordHash = await this.hashPassword(password, salt);
 		const user = this.database.newUser(username, salt, passwordHash, isAdmin);
 		try {
@@ -231,10 +232,10 @@ export class Service {
 	async hashPassword(password: string, salt: Buffer): Promise<Buffer> {
 		// Use default CPU/memory cost and blocksize parameters but increase parallelization.
 		const scryptOptions: crypto.ScryptOptions = {
-			p: Service.cryptoParallelization
+			p: Server.cryptoParallelization
 		};
 		const passwordHash = await new Promise<Buffer>((resolve, reject) => {
-			crypto.scrypt(password, salt, Service.cryptoKeyLength, scryptOptions, (error, derivedKey) => {
+			crypto.scrypt(password, salt, Server.cryptoKeyLength, scryptOptions, (error, derivedKey) => {
 				if (error == null) {
 					resolve(derivedKey);
 				}
@@ -313,6 +314,15 @@ export class Service {
 		response.send(getSitesResponse);
 	}
 
+	async browse(request: SessionRequest, response: express.Response) {
+		const browseRequest = <common.BrowseRequest>request.body;
+		validate.number('page', browseRequest.page);
+		
+		const site = this.getSite(browseRequest.site);
+		const browseResponse: common.BrowseResponse = await site.browse(browseRequest.page);
+		response.send(browseResponse);
+	}
+
 	async search(request: SessionRequest, response: express.Response) {
 		const searchRequest = <common.SearchRequest>request.body;
 		validate.string('site', searchRequest.site);
@@ -324,7 +334,7 @@ export class Service {
 		validate.number('page', searchRequest.page);
 
 		const site = this.getSite(searchRequest.site);
-		const searchResponse: common.SearchResponse = await site.search(searchRequest.query, searchRequest.categories, searchRequest.page);
+		const searchResponse: common.BrowseResponse = await site.search(searchRequest.query, searchRequest.categories, searchRequest.page);
 		response.send(searchResponse);
 	}
 
@@ -573,7 +583,7 @@ export class Service {
 	}
 
 	async createSession(request: express.Request, response: express.Response, user: User) {
-		const sessionId = crypto.randomBytes(Service.sessionIdLength);
+		const sessionId = crypto.randomBytes(Server.sessionIdLength);
 		const address = this.getAddress(request);
 		const userAgent = this.getUserAgent(request);
 		const session = this.database.newSession(user._id, sessionId, address, userAgent);
@@ -581,19 +591,19 @@ export class Service {
 		await this.deleteOldSessions(user);
 		user.lastLogin = new Date();
 		await user.save();
-		const sessionIdString = sessionId.toString(Service.sessionIdEncoding);
+		const sessionIdString = sessionId.toString(Server.sessionIdEncoding);
 		const cookieOptions: express.CookieOptions = {
-			maxAge: Service.sessionMaxAge,
+			maxAge: Server.sessionMaxAge,
 			httpOnly: true
 		};
-		response.cookie(Service.sessionCookieName, sessionIdString, cookieOptions);
+		response.cookie(Server.sessionCookieName, sessionIdString, cookieOptions);
 	}
 
 	async deleteOldSessions(user: User) {
 		const userSessions = await this.database.session.find({
 			userId: user._id
 		});
-		const sessionsToDelete = userSessions.length - Service.maxSessionsPerUser;
+		const sessionsToDelete = userSessions.length - Server.maxSessionsPerUser;
 		if (sessionsToDelete > 0) {
 			userSessions.sort((a, b) => a.lastAccess.getTime() - b.lastAccess.getTime());
 			const userSessionsToDelete = userSessions.filter((_, i) => i < sessionsToDelete)
@@ -612,13 +622,13 @@ export class Service {
 			return null;
 		}
 		const cookies = cookie.parse(requestCookies);
-		const sessionIdString = cookies[Service.sessionCookieName];
+		const sessionIdString = cookies[Server.sessionCookieName];
 		if (sessionIdString == null) {
 			return null;
 		}
 		let sessionId: Buffer;
 		try {
-			sessionId = Buffer.from(sessionIdString, Service.sessionIdEncoding);
+			sessionId = Buffer.from(sessionIdString, Server.sessionIdEncoding);
 		}
 		catch {
 			return null;
@@ -633,7 +643,7 @@ export class Service {
 		}
 		const now = new Date();
 		const sessionAge = (now.getTime() - session.lastAccess.getTime()) / 1000;
-		if (sessionAge >= Service.sessionMaxAge) {
+		if (sessionAge >= Server.sessionMaxAge) {
 			// The session has expired, delete it.
 			await this.deleteSession(session);
 			return null;
@@ -691,7 +701,7 @@ export class Service {
 	async onFreeDiskSpaceTimer() {
 		try {
 			const diskSpaceInfo = await checkDiskSpace(this.configuration.freeDiskSpace.path);
-			const minBytes = Service.bytesPerGigabyte * this.configuration.freeDiskSpace.min;
+			const minBytes = Server.bytesPerGigabyte * this.configuration.freeDiskSpace.min;
 			let diskSpaceToFree = Math.floor(minBytes - diskSpaceInfo.free);
 			if (diskSpaceToFree > 0) {
 				// The system is running out of disk space.
@@ -730,7 +740,7 @@ export class Service {
 	}
 
 	getSizeString(size: number): string {
-		const gigabytes = size / Service.bytesPerGigabyte;
+		const gigabytes = size / Server.bytesPerGigabyte;
 		return `${gigabytes.toFixed(2)} GiB`;
 	}
 
@@ -819,9 +829,9 @@ export class Service {
 		});
 		const matchingUserIdArray = Array.from(matchingUserIds);
 		let addEllipsis = false;
-		if (matchingUserIdArray.length > Service.maxSubscribersShown) {
+		if (matchingUserIdArray.length > Server.maxSubscribersShown) {
 			// Limit the number of matching users in order to avoid flooding and also to reduce the database load.
-			matchingUserIdArray.splice(Service.maxSubscribersShown);
+			matchingUserIdArray.splice(Server.maxSubscribersShown);
 			addEllipsis = true;
 		}
 		const matchingUsers = await this.database.user.find({
@@ -848,6 +858,6 @@ export class Service {
 	}
 
 	getTorrentSizeLimit(): number {
-		return Service.bytesPerGigabyte * this.configuration.torrentSizeLimit;
+		return Server.bytesPerGigabyte * this.configuration.torrentSizeLimit;
 	}
 }
