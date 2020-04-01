@@ -107,7 +107,7 @@ div.content {
     $errorColor: #c40000;
 
     .error {
-        display: flex;
+        display: none;
         color: $errorColor;
         border: 1px solid $errorColor;
         box-shadow: 0 0 0 4px #fcf4f4 inset;

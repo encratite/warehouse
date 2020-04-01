@@ -45,7 +45,7 @@ export class Server {
 	database: Database;
 	whitelistedPaths: string[] = [];
 	sites: TorrentSite[];
-	releaseCache: Map<string, Set<number>>;
+	releaseCache: Map<string, Set<number>> = new Map<string, Set<number>>();
 	transmission: transmission.TransmissionClient;
 	subscriptionInterval: NodeJS.Timeout;
 	freeDiskSpaceInterval: NodeJS.Timeout;
@@ -108,6 +108,7 @@ export class Server {
 				site.initialize(settings);
 			});
 		}
+		this.releaseCache.clear();
 		this.sites.forEach(site => {
 			if (this.releaseCache.has(site.name) === false) {
 				this.releaseCache[site.name] = new Set();

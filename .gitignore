@@ -6,3 +6,6 @@
 /server/configuration.json
 /client/scripts
 /client/source/common.ts
+*.log
+*.css
+*.css.map

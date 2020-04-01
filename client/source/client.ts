@@ -34,7 +34,8 @@ export class Client {
     }
 
     showElement(element: HTMLElement, show: boolean = true) {
-        element.style.display = show === true ? 'block' : 'none';
+        const displayStyle = element.classList.contains('flex') === true ? 'flex' : 'block';
+        element.style.display = show === true ? displayStyle : 'none';
     }
 
     hideElement(element: HTMLElement) {

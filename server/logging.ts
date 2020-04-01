@@ -32,7 +32,7 @@ async function write(message: string, consoleHandler: (message: string) => void)
 		throw new Error('Logging has not been initialized yet.');
 	}
 	const logMessage = `${formattedMessage}\n`;
-	await fs.promises.write(logFileHandle, logMessage);
+	await logFileHandle.write(logMessage);
 }
 
 function getTimestamp() {
