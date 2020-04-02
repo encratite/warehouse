@@ -249,11 +249,7 @@ export class Server {
 	}
 
 	async deleteUser(username: string): Promise<boolean> {
-		const result = await this.database.user.deleteOne({ name: username }, error => {
-			if (error != null) {
-				throw error;
-			}
-		});
+		const result = await this.database.user.deleteOne({ name: username });
 		const success = result.deletedCount > 0;
 		return success;
 	}
