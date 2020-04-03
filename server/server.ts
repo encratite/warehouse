@@ -259,16 +259,7 @@ export class Server {
 		validate.string('username', loginRequest.username);
 		validate.string('password', loginRequest.password);
 
-		const user = await new Promise<User>((resolve, reject) => {
-			this.database.user.findOne({ name: loginRequest.username }, (error, user) => {
-				if (error == null) {
-					resolve(user);
-				}
-				else {
-					reject(error);
-				}
-			});
-		});
+		const user = await this.database.user.findOne({ name: loginRequest.username });
 		let success = false;
 		if (user != null) {
 			const passwordHash = await this.hashPassword(loginRequest.password, user.salt);
