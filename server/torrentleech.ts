@@ -133,7 +133,7 @@ export class TorrentLeech implements site.TorrentSite {
 	}
 
 	async browse(page: number): Promise<site.BrowseResults> {
-		const baseUrl = 'https://www.torrentleech.org/torrents/browse/index';
+		const baseUrl = 'https://www.torrentleech.org/torrents/browse/list';
 		const results = this.getBrowseResults(baseUrl, null, null, page);
 		return results;
 	}

@@ -132,7 +132,7 @@ export class Client {
 
     async showTorrents() {
         const torrentTable = document.querySelector<HTMLTableElement>('#torrents table');
-        this.removeCells(torrentTable);
+        this.clearTable(torrentTable);
         this.show('menu');
         this.show('torrents');
         // To do: show loading indicator instead of empty table.
@@ -145,10 +145,11 @@ export class Client {
         this.renderTorrents(browseResult.torrents, firstSite, torrentTable);
     }
 
-    removeCells(table: HTMLTableElement) {
-        const cells = table.querySelectorAll('td');
+    clearTable(table: HTMLTableElement) {
+        const body = table.querySelector('tbody');
+        const cells = body.querySelectorAll('tr:nth-child(n + 2)');
         cells.forEach(cell => {
-            table.removeChild(cell);
+            body.removeChild(cell);
         });
     }
 
