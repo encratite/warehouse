@@ -12,16 +12,20 @@ export class Client {
     async validateSession() {
         const response = await api.validateSession();
         if (response.valid === true) {
-            const sitesResponse = await api.getSites();
-            if (sitesResponse.sites.length === 0) {
-                throw new Error('Server returned no sites.');
-            }
-            this.sites = sitesResponse.sites;
+            await this.getSites();
             await this.showTorrents();
         }
         else {
             this.showLogin();
         }
+    }
+
+    async getSites() {
+        const sitesResponse = await api.getSites();
+        if (sitesResponse.sites.length === 0) {
+            throw new Error('Server returned no sites.');
+        }
+        this.sites = sitesResponse.sites;
     }
 
     show(id: string, show: boolean = true) {
@@ -114,6 +118,7 @@ export class Client {
         const loginResult = await api.login(loginRequest);
         if (loginResult.success === true) {
             this.hide('login');
+            await this.getSites();
             await this.showTorrents();
         }
         else {
