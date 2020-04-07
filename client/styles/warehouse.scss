@@ -239,4 +239,17 @@ div.content {
             color: #183d61;
         }
     }
+
+    .pageMenu {
+        text-align: center;
+
+        ul {
+            list-style-type: none;
+        }
+
+        li {
+            display: inline;
+            margin: 0 0.3em;
+        }
+    }
 }

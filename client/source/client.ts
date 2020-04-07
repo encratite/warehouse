@@ -55,23 +55,34 @@ export class Client {
     initializeInterface() {
         this.initializeLogin();
         this.initializeMenu();
+        this.initializeTorrents();
     }
 
     initializeLogin() {
-        const inputElements = document.querySelectorAll('#login input');
-        inputElements.forEach(element => {
-            const inputElement = <HTMLInputElement>element;
-            inputElement.onkeypress = this.onLoginKeyPress.bind(this);
+        const container = document.querySelector<HTMLDivElement>('#login');
+        const inputElements = container.querySelectorAll('input');
+        inputElements.forEach((element: HTMLInputElement) => {
+            element.onkeypress = this.onLoginKeyPress.bind(this);
         });
-        const loginButton = document.querySelector<HTMLButtonElement>('#login button');
+        const loginButton = container.querySelector<HTMLButtonElement>('button');
         loginButton.onclick = this.onLoginClick.bind(this);
     }
 
     initializeMenu() {
-        const inputElement = document.querySelector<HTMLInputElement>('#menu input');
+        const container = document.querySelector<HTMLDivElement>('#menu');
+        const inputElement = container.querySelector<HTMLInputElement>('input');
         inputElement.onkeypress = this.onSearchKeyPress.bind(this);
-        const searchButton = document.querySelector<HTMLButtonElement>('#menu button');
+        const searchButton = container.querySelector<HTMLButtonElement>('button');
         searchButton.onclick = this.onSearchClick.bind(this);
+    }
+
+    initializeTorrents() {
+        const container = document.querySelector<HTMLDivElement>('#torrents');
+        const pageMenuButtons = container.querySelectorAll('.pageMenu i');
+        const previousPageButton = <HTMLElement>pageMenuButtons[0];
+        const nextPageButton = <HTMLElement>pageMenuButtons[1];
+        previousPageButton.onclick = this.onPreviousPageClick.bind(this);
+        nextPageButton.onclick = this.onNextPageClick.bind(this);
     }
 
     onLoginKeyPress(e: KeyboardEvent) {
@@ -136,18 +147,21 @@ export class Client {
     }
 
     async showTorrents() {
-        const torrentTable = document.querySelector<HTMLTableElement>('#torrents table');
+        const torrentContainer = document.querySelector<HTMLDivElement>('#torrents');
+        const torrentTable = torrentContainer.querySelector<HTMLTableElement>('table');
         this.clearTable(torrentTable);
         this.show('menu');
         this.show('torrents');
         // To do: show loading indicator instead of empty table.
         const firstSite = this.sites[0];
+        const page = 1;
         const browseRequest: common.BrowseRequest = {
             site: firstSite.name,
-            page: 1
+            page: page
         };
         const browseResult = await api.browse(browseRequest);
         this.renderTorrents(browseResult.torrents, firstSite, torrentTable);
+        this.renderPageCount(page, browseResult.pages, torrentContainer);
     }
 
     clearTable(table: HTMLTableElement) {
@@ -191,6 +205,19 @@ export class Client {
             });
             table.appendChild(row);
         });
+    }
+
+    renderPageCount(page: number, pages: number, torrentContainer: HTMLDivElement) {
+        const pageCount = torrentContainer.querySelector<HTMLLIElement>('.pageMenu li:nth-child(2)');
+        pageCount.textContent = `Page ${page} of ${pages}`;
+    }
+
+    onPreviousPageClick(ev: MouseEvent) {
+        throw new Error('Not implemented.');
+    }
+
+    onNextPageClick(ev: MouseEvent) {
+        throw new Error('Not implemented.');
     }
 
     getCategoryName(categoryId: number, site: common.Site) {
