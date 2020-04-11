@@ -4,6 +4,11 @@ import * as common from './common.js';
 export class Client {
     sites: common.Site[];
 
+    // Variables pertaining to paging.
+    browsingSite: common.Site;
+    browsingRequest: common.BrowseRequest;
+    browsingPageCount: number;
+
     async start() {
         this.initializeInterface();
         this.validateSession();
@@ -147,21 +152,10 @@ export class Client {
     }
 
     async showTorrents() {
-        const torrentContainer = document.querySelector<HTMLDivElement>('#torrents');
-        const torrentTable = torrentContainer.querySelector<HTMLTableElement>('table');
-        this.clearTable(torrentTable);
         this.show('menu');
         this.show('torrents');
-        // To do: show loading indicator instead of empty table.
         const firstSite = this.sites[0];
-        const page = 1;
-        const browseRequest: common.BrowseRequest = {
-            site: firstSite.name,
-            page: page
-        };
-        const browseResult = await api.browse(browseRequest);
-        this.renderTorrents(browseResult.torrents, firstSite, torrentTable);
-        this.renderPageCount(page, browseResult.pages, torrentContainer);
+        await this.browse(firstSite, 1);
     }
 
     clearTable(table: HTMLTableElement) {
@@ -172,7 +166,23 @@ export class Client {
         });
     }
 
+    async browse(site: common.Site, page: number) {
+        this.browsingSite = site;
+        this.browsingRequest = {
+            site: site.name,
+            page: page
+        };
+        const browseResult = await api.browse(this.browsingRequest);
+        this.browsingPageCount = browseResult.pages;
+        const torrentContainer = document.querySelector<HTMLDivElement>('#torrents');
+        const torrentTable = torrentContainer.querySelector<HTMLTableElement>('table');
+        this.clearTable(torrentTable);
+        this.renderTorrents(browseResult.torrents, site, torrentTable);
+        this.renderPageCount(this.browsingRequest.page, this.browsingPageCount, torrentContainer);
+    }
+
     renderTorrents(torrents: common.Torrent[], site: common.Site, table: HTMLTableElement) {
+        const body = <HTMLElement>table.querySelector('tbody');
         torrents.forEach(torrent => {
             const categoryName = this.getCategoryName(torrent.categoryId, site);
             const sizeString = this.getSizeString(torrent.size);
@@ -203,7 +213,7 @@ export class Client {
             cells.forEach(cell => {
                 row.appendChild(cell);
             });
-            table.appendChild(row);
+            body.appendChild(row);
         });
     }
 
@@ -212,12 +222,20 @@ export class Client {
         pageCount.textContent = `Page ${page} of ${pages}`;
     }
 
-    onPreviousPageClick(ev: MouseEvent) {
-        throw new Error('Not implemented.');
+    async onPreviousPageClick(ev: MouseEvent) {
+        await this.showNextPage(true);
     }
 
-    onNextPageClick(ev: MouseEvent) {
-        throw new Error('Not implemented.');
+    async  onNextPageClick(ev: MouseEvent) {
+        await this.showNextPage(false);
+    }
+
+    async showNextPage(reverse: boolean) {
+        const direction = reverse === false ? 1 : -1;
+        const nextPage = this.browsingRequest.page + direction;
+        if (nextPage >= 1 && nextPage <= this.browsingPageCount) {
+            await this.browse(this.browsingSite, nextPage);
+        }
     }
 
     getCategoryName(categoryId: number, site: common.Site) {

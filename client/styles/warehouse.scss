@@ -249,7 +249,16 @@ div.content {
 
         li {
             display: inline;
-            margin: 0 0.3em;
+            margin: 0 0.4em;
+
+            i {
+                color: #bbb;
+                cursor: pointer;
+
+                &:hover {
+                    color: #222;
+                }
+            }
         }
     }
 }
