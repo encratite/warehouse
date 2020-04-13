@@ -1,264 +1,277 @@
 * {
-    font-family: 'Noto Sans', sans-serif;
-    font-size: 14px;
+	font-family: 'Noto Sans', sans-serif;
+	font-size: 14px;
 }
 
 body {
-    margin: 0;
-    padding: 0;
-    min-width: fit-content;
+	margin: 0;
+	padding: 0;
+	min-width: fit-content;
 }
 
 h1 {
-    font-size: 140%;
-    margin-top: 0;
+	font-size: 140%;
+	margin-top: 0;
 }
 
 label {
-    font-weight: bold;
-    display: block;
-    margin-bottom: 0.2em;
-    margin-left: 0.1em;
+	font-weight: bold;
+	display: block;
+	margin-bottom: 0.2em;
+	margin-left: 0.1em;
 }
 
 input.form {
-    padding: 0.35em;
-    box-sizing: border-box;
-    border: 1px solid #a6a6a6;
-    border-top-color: #949494;
-    border-radius: 3px;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, .5), 0 1px 0 rgba(0, 0, 0, .07) inset;
-    outline: 0;
+	padding: 0.35em;
+	box-sizing: border-box;
+	border: 1px solid #a6a6a6;
+	border-top-color: #949494;
+	border-radius: 3px;
+	box-shadow: 0 1px 0 rgba(255, 255, 255, .5), 0 1px 0 rgba(0, 0, 0, .07) inset;
+	outline: 0;
 }
 
 @mixin button-border-color {
-    border-color: #adb1b8 #a2a6ac #8d9096;
+	border-color: #adb1b8 #a2a6ac #8d9096;
 }
 
 button {
-    cursor: pointer;
+	cursor: pointer;
 
-    &.button {
-        padding: 0.35em;
-        background: linear-gradient(to bottom, #f7f8fa, #e7e9ec);
-        border-radius: 3px;
-        @include button-border-color;
-        border-style: solid;
-        border-width: 1px;
+	&.button {
+		padding: 0.35em;
+		background: linear-gradient(to bottom, #f7f8fa, #e7e9ec);
+		border-radius: 3px;
+		@include button-border-color;
+		border-style: solid;
+		border-width: 1px;
 
-        &:hover {
-            background: linear-gradient(to bottom, #e7eaf0, #d9dce1);
-        }
-    }
+		&:hover {
+			background: linear-gradient(to bottom, #e7eaf0, #d9dce1);
+		}
+	}
 
-    &.primary {
-        padding: 0.35em;
-        background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
-        border-radius: 3px;
-        @include button-border-color;
-        border-style: solid;
-        border-width: 1px;
-        cursor: pointer;
+	&.primary {
+		padding: 0.35em;
+		background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
+		border-radius: 3px;
+		@include button-border-color;
+		border-style: solid;
+		border-width: 1px;
+		cursor: pointer;
 
-        &:hover {
-            background: linear-gradient(to bottom, #f5d78e, #eeb933);
-        }
-    }
+		&:hover {
+			background: linear-gradient(to bottom, #f5d78e, #eeb933);
+		}
+	}
 }
 
 th {
-    text-align: left;
+	text-align: left;
 }
 
 div.content {
-    padding: 3em;
+	padding: 3em;
+}
+
+#overlay {
+	display: none;
+	position: fixed;
+	width: 100%;
+	height: 100%;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 2;
+	cursor: wait;
 }
 
 #login {
-    margin: 1em auto;
-    width: 20em;
-    display: none;
+	margin: 1em auto;
+	width: 20em;
+	display: none;
 
-    .logo {
-        text-align: center;
-        margin-bottom: 1em;
-    }
+	.logo {
+		text-align: center;
+		margin-bottom: 1em;
+	}
 
-    .logo img {
-        width: 12em;
-    }
+	.logo img {
+		width: 12em;
+	}
 
-    .loginForm {
-        padding: 1.5em 2em 2em 2em;
-        border-radius: 4px;
-        border: 1px #ddd solid;
-    }
+	.loginForm {
+		padding: 1.5em 2em 2em 2em;
+		border-radius: 4px;
+		border: 1px #ddd solid;
+	}
 
-    input {
-        width: 100%;
-        margin-bottom: 1em;
-    }
+	input {
+		width: 100%;
+		margin-bottom: 1em;
+	}
 
-    button {
-        width: 100%;
-        margin-top: 0.5em;
-    }
+	button {
+		width: 100%;
+		margin-top: 0.5em;
+	}
 
-    $errorColor: #c40000;
+	$errorColor: #c40000;
 
-    .error {
-        display: none;
-        color: $errorColor;
-        border: 1px solid $errorColor;
-        box-shadow: 0 0 0 4px #fcf4f4 inset;
-        border-radius: 4px;
-        margin-top: 2em;
-        padding: 1em;
+	.error {
+		display: none;
+		color: $errorColor;
+		border: 1px solid $errorColor;
+		box-shadow: 0 0 0 4px #fcf4f4 inset;
+		border-radius: 4px;
+		margin-top: 2em;
+		padding: 1em;
 
-        .triangle i {
-            font-size: 2em;
-        }
+		.triangle i {
+			font-size: 2em;
+		}
 
-        .message {
-            padding: 0.3em 0 0 0.7em;
-        }
-    }
+		.message {
+			padding: 0.3em 0 0 0.7em;
+		}
+	}
 }
 
 #menu {
-    background-color: rgb(35, 47, 62);
-    padding: 1em;
-    margin-bottom: 1em;
-    display: none;
+	background-color: rgb(35, 47, 62);
+	padding: 1em;
+	margin-bottom: 1em;
+	display: none;
 
-    ul {
-        display: flex;
-        align-items: center;
-        justify-content: space-evenly;
-        min-width: 30em;
-        max-width: 55em;
-        margin: 0 auto;
-        padding: 0;
-    }
+	ul {
+		display: flex;
+		align-items: center;
+		justify-content: space-evenly;
+		min-width: 30em;
+		max-width: 55em;
+		margin: 0 auto;
+		padding: 0;
+	}
 
-    li {
-        display: inline;
-        color: #ccc;
-        cursor: pointer;
-        vertical-align: center;
-        margin: 0 1em;
+	li {
+		display: inline;
+		color: #ccc;
+		cursor: pointer;
+		vertical-align: center;
+		margin: 0 1em;
 
-        &:hover {
-            color: #fff;
-        }
-    }
-    
-    .logo img {
-        width: 10em;
-        margin-top: 0.9em;
-    }
+		&:hover {
+			color: #fff;
+		}
+	}
+	
+	.logo img {
+		width: 10em;
+		margin-top: 0.9em;
+	}
 
-    .search {
-        flex: 1 15em;
-        display: flex;
-        align-items: stretch;
-    }
+	.search {
+		flex: 1 15em;
+		display: flex;
+		align-items: stretch;
+	}
 
-    .search {
-        input {
-            flex: 1 3em;
-            border: none;
-            height: 2em;
-            padding: 0.2em 0.8em 0.2em 0.8em;
-            border-radius: 0.3em 0 0 0.3em;
-        }
+	.search {
+		input {
+			flex: 1 3em;
+			border: none;
+			height: 2em;
+			padding: 0.2em 0.8em 0.2em 0.8em;
+			border-radius: 0.3em 0 0 0.3em;
+		}
 
-        button {
-            flex: 0 2.7em;
-            border: none;
-            background-color: #febd69;
-            border-radius: 0 0.3em 0.3em 0;
+		button {
+			flex: 0 2.7em;
+			border: none;
+			background-color: #febd69;
+			border-radius: 0 0.3em 0.3em 0;
 
-            &:hover {
-                background-color: #f3a847;
-            }
-        }
-    }
+			&:hover {
+				background-color: #f3a847;
+			}
+		}
+	}
 }
 
 #torrents {
-    display: none;
+	display: none;
 
-    table {
-        margin: 0 auto;
-        border-spacing: 0;
-        border: 1px #ddd solid;
-        border-radius: 4px;
-        width: 85em;
-    }
+	table {
+		margin: 0 auto;
+		border-spacing: 0;
+		border: 1px #ddd solid;
+		border-radius: 4px;
+		width: 85em;
+	}
 
-    tr:last-child td {
-        border: 0;
-    }
+	tr:last-child td {
+		border: 0;
+	}
 
-    th {
-        border-bottom: 1px #ddd solid;
-        padding: 0.6em 0.8em;
-        background-color: #f6f6f6;
-    }
+	th {
+		border-bottom: 1px #ddd solid;
+		padding: 0.6em 0.8em;
+		background-color: #f6f6f6;
+	}
 
-    td {
-        border-bottom: 1px #eee solid;
-        padding: 0.6em 0.8em;
-        white-space: nowrap;
+	td {
+		border-bottom: 1px #eee solid;
+		padding: 0.6em 0.8em;
+		white-space: nowrap;
 
-        &:nth-child(2) {
-            white-space: normal;
-        }
+		&:nth-child(2) {
+			white-space: normal;
+		}
 
-        &:nth-child(3), &:nth-child(4), &:nth-child(5), &:nth-child(6) {
-            text-align: right;
-        }
+		&:nth-child(3), &:nth-child(4), &:nth-child(5), &:nth-child(6) {
+			text-align: right;
+		}
 
-        &:nth-child(5) {
-            font-weight: bold;
-            color: #33691e;
-        }
+		&:nth-child(5) {
+			font-weight: bold;
+			color: #33691e;
+		}
 
-        &:nth-child(6) {
-            font-weight: bold;
-            color: #d00210;
-        }
-    }
+		&:nth-child(6) {
+			font-weight: bold;
+			color: #d00210;
+		}
+	}
 
-    span {
-        color: #005bb5;
-        cursor: pointer;
+	span {
+		color: #005bb5;
+		cursor: pointer;
 
-        &:hover {
-            color: #183d61;
-        }
-    }
+		&:hover {
+			color: #183d61;
+		}
+	}
 
-    .pageMenu {
-        text-align: center;
+	.pageMenu {
+		text-align: center;
 
-        ul {
-            list-style-type: none;
-        }
+		ul {
+			list-style-type: none;
+		}
 
-        li {
-            display: inline;
-            margin: 0 0.4em;
+		li {
+			display: inline;
+			margin: 0 0.4em;
 
-            i {
-                color: #bbb;
-                cursor: pointer;
+			i {
+				color: #bbb;
+				cursor: pointer;
 
-                &:hover {
-                    color: #222;
-                }
-            }
-        }
-    }
+				&:hover {
+					color: #222;
+				}
+			}
+		}
+	}
 }
