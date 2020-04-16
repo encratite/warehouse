@@ -3,11 +3,8 @@ import * as common from './common.js';
 
 export class Client {
 	sites: common.Site[];
-
-	// Variables pertaining to paging.
-	browsingSite: common.Site;
-	browsingRequest: common.BrowseRequest;
-	browsingPageCount: number;
+	currentPage: number;
+	sitePageCounts: Map<string, number> = new Map();
 
 	async start() {
 		this.initializeInterface();
@@ -159,9 +156,9 @@ export class Client {
 			};
 			const loginResult = await api.login(loginRequest);
 			if (loginResult.success === true) {
-				this.hide('login');
 				await this.getSites();
 				await this.showTorrents();
+				this.hide('login');
 			}
 			else {
 				this.showLoginError(true);
@@ -181,10 +178,9 @@ export class Client {
 	}
 
 	async showTorrents() {
+		await this.browse(1);
 		this.show('menu');
 		this.show('torrents');
-		const firstSite = this.sites[0];
-		await this.browse(firstSite, 1);
 	}
 
 	clearTable(table: HTMLTableElement) {
@@ -195,20 +191,34 @@ export class Client {
 		});
 	}
 
-	async browse(site: common.Site, page: number) {
+	async browse(page: number) {
 		await this.setBusy(async () => {
-			this.browsingSite = site;
-			this.browsingRequest = {
-				site: site.name,
-				page: page
-			};
-			const browseResult = await api.browse(this.browsingRequest);
-			this.browsingPageCount = browseResult.pages;
+			this.currentPage = page;
+			const browsePromises = this.sites.map(async (site): Promise<common.BrowseResponse> => {
+				const browsingRequest = {
+					site: site.name,
+					page: page
+				};
+				const browseResult = await api.browse(browsingRequest);
+				return browseResult;
+			});
+			let pageCount: number;
+			let torrents: common.Torrent[] = [];
+			const browseResults = await Promise.all(browsePromises);
+			browseResults.forEach((browseResult,  index) => {
+				const site = this.sites[index];
+				this.sitePageCounts[site.name] = browseResult.pages;
+				if (pageCount === null || browseResult.pages > pageCount) {
+					pageCount = browseResult.pages;
+				}
+				torrents = torrents.concat(browseResult.torrents);
+			});
+
 			const torrentContainer = document.querySelector<HTMLDivElement>('#torrents');
 			const torrentTable = torrentContainer.querySelector<HTMLTableElement>('table');
 			this.clearTable(torrentTable);
-			this.renderTorrents(browseResult.torrents, site, torrentTable);
-			this.renderPageCount(this.browsingRequest.page, this.browsingPageCount, torrentContainer);
+			this.renderTorrents(torrents, site, torrentTable);
+			this.renderPageCount(this.currentPage, pageCount, torrentContainer);
 		});
 	}
 
