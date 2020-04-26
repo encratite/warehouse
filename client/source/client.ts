@@ -55,6 +55,10 @@ export class Client {
 		}
 	}
 
+	notImplemented() {
+		throw new Error('Not implemented.');
+	}
+
 	initializeInterface() {
 		this.initializeLogin();
 		this.initializeMenu();
@@ -77,6 +81,16 @@ export class Client {
 		inputElement.onkeypress = this.onSearchKeyPress.bind(this);
 		const searchButton = container.querySelector<HTMLButtonElement>('button');
 		searchButton.onclick = this.onSearchClick.bind(this);
+
+		this.setClickHandler('browseLink', this.onBrowseLinkClick.bind(this));
+		this.setClickHandler('subscriptionsLink', this.onSubscriptionsLinkClick.bind(this));
+		this.setClickHandler('statusLink', this.onStatusLinkClick.bind(this));
+		this.setClickHandler('profileLink', this.onProfileLinkClick.bind(this));
+	}
+
+	setClickHandler(id: string, onClick: (ev: MouseEvent) => void) {
+		const element = document.getElementById(id);
+		element.onclick = onClick;
 	}
 
 	initializeTorrents() {
@@ -121,6 +135,22 @@ export class Client {
 
 	async onLoginClick(e: MouseEvent) {
 		await this.login();
+	}
+
+	async onBrowseLinkClick(e: MouseEvent) {
+		await this.showTorrents();
+	}
+
+	async onSubscriptionsLinkClick(e: MouseEvent) {
+		this.notImplemented();
+	}
+
+	async onStatusLinkClick(e: MouseEvent) {
+		this.notImplemented();
+	}
+
+	async onProfileLinkClick(e: MouseEvent) {
+		this.notImplemented();
 	}
 
 	async onSearchKeyPress(e: KeyboardEvent) {
@@ -174,15 +204,24 @@ export class Client {
 
 	async search() {
 		await this.setBusy(async () => {
-			throw new Error('Not implemented.');
+			this.notImplemented();
 		});
 	}
 
 	async showTorrents() {
+		this.hideContainers();
 		this.sitePageCounts.clear();
 		await this.browse(1);
 		this.show('menu');
 		this.show('torrents');
+	}
+
+	hideContainers(showMenu: boolean = true) {
+		const containers = document.querySelectorAll<HTMLDivElement>('body > div:nth-child(n + 2)');
+		containers.forEach(container => {
+			this.hideElement(container);
+		});
+		this.show('menu');
 	}
 
 	clearTable(table: HTMLTableElement) {
