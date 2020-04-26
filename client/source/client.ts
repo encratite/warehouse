@@ -1,10 +1,11 @@
 import * as api from './api.js';
 import * as common from './common.js';
+import { SiteTorrent } from './sitetorrent.js';
 
 export class Client {
 	sites: common.Site[];
 	currentPage: number;
-	sitePageCounts: Map<string, number> = new Map();
+	sitePageCounts: Map<common.Site, number> = new Map();
 
 	async start() {
 		this.initializeInterface();
@@ -178,6 +179,7 @@ export class Client {
 	}
 
 	async showTorrents() {
+		this.sitePageCounts.clear();
 		await this.browse(1);
 		this.show('menu');
 		this.show('torrents');
@@ -194,38 +196,50 @@ export class Client {
 	async browse(page: number) {
 		await this.setBusy(async () => {
 			this.currentPage = page;
-			const browsePromises = this.sites.map(async (site): Promise<common.BrowseResponse> => {
-				const browsingRequest = {
-					site: site.name,
-					page: page
-				};
-				const browseResult = await api.browse(browsingRequest);
-				return browseResult;
+			let browsePromises: Promise<common.BrowseResponse>[] = [];
+			this.sites.forEach(site => {
+				const sitePageCount = this.sitePageCounts.get(site);
+				if (sitePageCount == null || page <= sitePageCount) {
+					const browsingRequest = {
+						site: site.name,
+						page: page
+					};
+					const promise = api.browse(browsingRequest);
+					browsePromises.push(promise);
+				}
 			});
-			let pageCount: number;
-			let torrents: common.Torrent[] = [];
+			let siteTorrents: SiteTorrent[] = [];
 			const browseResults = await Promise.all(browsePromises);
 			browseResults.forEach((browseResult,  index) => {
 				const site = this.sites[index];
-				this.sitePageCounts[site.name] = browseResult.pages;
-				if (pageCount === null || browseResult.pages > pageCount) {
-					pageCount = browseResult.pages;
-				}
-				torrents = torrents.concat(browseResult.torrents);
+				this.sitePageCounts.set(site, browseResult.pages);
+				const newSiteTorrents = browseResult.torrents.map(torrent => new SiteTorrent(site, torrent));
+				siteTorrents = siteTorrents.concat(newSiteTorrents);
 			});
+			this.sortTorrentsByTime(siteTorrents);
 
 			const torrentContainer = document.querySelector<HTMLDivElement>('#torrents');
 			const torrentTable = torrentContainer.querySelector<HTMLTableElement>('table');
 			this.clearTable(torrentTable);
-			this.renderTorrents(torrents, site, torrentTable);
-			this.renderPageCount(this.currentPage, pageCount, torrentContainer);
+			this.renderTorrents(siteTorrents, torrentTable);
+			this.renderPageCount(torrentContainer);
 		});
 	}
 
-	renderTorrents(torrents: common.Torrent[], site: common.Site, table: HTMLTableElement) {
+	sortTorrentsByTime(siteTorrents: SiteTorrent[]) {
+		siteTorrents.sort((torrent1, torrent2) => {
+			const date1 = new Date(torrent1.torrent.added);
+			const date2 = new Date(torrent2.torrent.added);
+			const difference = date2.getTime() - date1.getTime();
+			return difference;
+		});
+	}
+
+	renderTorrents(siteTorrents: SiteTorrent[], table: HTMLTableElement) {
 		const body = <HTMLElement>table.querySelector('tbody');
-		torrents.forEach(torrent => {
-			const categoryName = this.getCategoryName(torrent.categoryId, site);
+		siteTorrents.forEach(siteTorrent => {
+			const torrent = siteTorrent.torrent;
+			const categoryName = this.getCategoryName(torrent.categoryId, siteTorrent.site);
 			const sizeString = this.getSizeString(torrent.size);
 			const localeDateString = this.getLocaleDateString(torrent.added);
 			const cellStrings = [
@@ -258,9 +272,10 @@ export class Client {
 		});
 	}
 
-	renderPageCount(page: number, pages: number, torrentContainer: HTMLDivElement) {
+	renderPageCount(torrentContainer: HTMLDivElement) {
 		const pageCount = torrentContainer.querySelector<HTMLLIElement>('.pageMenu li:nth-child(2)');
-		pageCount.textContent = `Page ${page} of ${pages}`;
+		const lastPage = this.getLastPage();
+		pageCount.textContent = `Page ${this.currentPage} of ${lastPage}`;
 	}
 
 	async onPreviousPageClick(ev: MouseEvent) {
@@ -273,10 +288,22 @@ export class Client {
 
 	async showNextPage(reverse: boolean) {
 		const direction = reverse === false ? 1 : -1;
-		const nextPage = this.browsingRequest.page + direction;
-		if (nextPage >= 1 && nextPage <= this.browsingPageCount) {
-			await this.browse(this.browsingSite, nextPage);
+		const nextPage = this.currentPage + direction;
+		const lastPage = this.getLastPage();
+		if (nextPage >= 1 && nextPage <= lastPage) {
+			await this.browse(nextPage);
+			window.scrollTo(0, 0);
 		}
+	}
+
+	getLastPage(): number {
+		let lastPage: number = null;
+		for (let pages of this.sitePageCounts.values()) {
+			if (lastPage == null || pages > lastPage) {
+				lastPage = pages;
+			}
+		}
+		return lastPage;
 	}
 
 	getCategoryName(categoryId: number, site: common.Site) {
