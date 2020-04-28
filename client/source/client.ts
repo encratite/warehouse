@@ -203,9 +203,12 @@ export class Client {
 	}
 
 	async search() {
-		await this.setBusy(async () => {
-			this.notImplemented();
-		});
+		let searchInput =  this.getInputValue('search');
+		searchInput = searchInput.trim();
+		if (searchInput.length === 0) {
+			return;
+		}
+		this.notImplemented();
 	}
 
 	async showTorrents() {
@@ -247,22 +250,30 @@ export class Client {
 					browsePromises.push(promise);
 				}
 			});
-			let siteTorrents: SiteTorrent[] = [];
 			const browseResults = await Promise.all(browsePromises);
-			browseResults.forEach((browseResult,  index) => {
-				const site = this.sites[index];
-				this.sitePageCounts.set(site, browseResult.pages);
-				const newSiteTorrents = browseResult.torrents.map(torrent => new SiteTorrent(site, torrent));
-				siteTorrents = siteTorrents.concat(newSiteTorrents);
-			});
-			this.sortTorrentsByTime(siteTorrents);
-
-			const torrentContainer = document.querySelector<HTMLDivElement>('#torrents');
-			const torrentTable = torrentContainer.querySelector<HTMLTableElement>('table');
-			this.clearTable(torrentTable);
-			this.renderTorrents(siteTorrents, torrentTable);
-			this.renderPageCount(torrentContainer);
+			this.renderTorrents(browseResults);
 		});
+	}
+
+	renderTorrents(browseResults: common.BrowseResponse[]) {
+		const siteTorrents = this.getSiteTorrents(browseResults);
+		const torrentContainer = document.querySelector<HTMLDivElement>('#torrents');
+		const torrentTable = torrentContainer.querySelector<HTMLTableElement>('table');
+		this.clearTable(torrentTable);
+		this.renderTorrentTable(siteTorrents, torrentTable);
+		this.renderPageCount(torrentContainer);
+	}
+
+	getSiteTorrents(browseResults: common.BrowseResponse[]): SiteTorrent[] {
+		let siteTorrents: SiteTorrent[] = [];
+		browseResults.forEach((browseResult,  index) => {
+			const site = this.sites[index];
+			this.sitePageCounts.set(site, browseResult.pages);
+			const newSiteTorrents = browseResult.torrents.map(torrent => new SiteTorrent(site, torrent));
+			siteTorrents = siteTorrents.concat(newSiteTorrents);
+		});
+		this.sortTorrentsByTime(siteTorrents);
+		return siteTorrents;
 	}
 
 	sortTorrentsByTime(siteTorrents: SiteTorrent[]) {
@@ -274,7 +285,7 @@ export class Client {
 		});
 	}
 
-	renderTorrents(siteTorrents: SiteTorrent[], table: HTMLTableElement) {
+	renderTorrentTable(siteTorrents: SiteTorrent[], table: HTMLTableElement) {
 		const body = <HTMLElement>table.querySelector('tbody');
 		siteTorrents.forEach(siteTorrent => {
 			const torrent = siteTorrent.torrent;
