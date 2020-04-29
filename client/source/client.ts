@@ -6,6 +6,7 @@ export class Client {
 	sites: common.Site[];
 	currentPage: number;
 	sitePageCounts: Map<common.Site, number> = new Map();
+	pagingHandler: (page: number) => Promise<void>;
 
 	async start() {
 		this.initializeInterface();
@@ -16,7 +17,7 @@ export class Client {
 		const response = await api.validateSession();
 		if (response.valid === true) {
 			await this.getSites();
-			await this.showTorrents();
+			await this.browseTorrents();
 		}
 		else {
 			this.showLogin();
@@ -138,7 +139,7 @@ export class Client {
 	}
 
 	async onBrowseLinkClick(e: MouseEvent) {
-		await this.showTorrents();
+		await this.browseTorrents();
 	}
 
 	async onSubscriptionsLinkClick(e: MouseEvent) {
@@ -155,12 +156,12 @@ export class Client {
 
 	async onSearchKeyPress(e: KeyboardEvent) {
 		if (this.isEnterKey(e) === true) {
-			await this.search();
+			await this.searchTorrents();
 		}
 	}
 
 	async onSearchClick(e: MouseEvent) {
-		await this.search();
+		await this.searchTorrents();
 	}
 
 	isEnterKey(e: KeyboardEvent) {
@@ -188,7 +189,7 @@ export class Client {
 			const loginResult = await api.login(loginRequest);
 			if (loginResult.success === true) {
 				await this.getSites();
-				await this.showTorrents();
+				await this.browseTorrents();
 				this.hide('login');
 			}
 			else {
@@ -202,21 +203,26 @@ export class Client {
 		return input.value;
 	}
 
-	async search() {
-		let searchInput =  this.getInputValue('search');
-		searchInput = searchInput.trim();
-		if (searchInput.length === 0) {
+	async searchTorrents() {
+		let query =  this.getInputValue('search');
+		query = query.trim();
+		if (query.length === 0) {
 			return;
 		}
-		this.notImplemented();
+		this.sitePageCounts.clear();
+		await this.search(query, 1);
+		this.showContainer('torrents');
 	}
 
-	async showTorrents() {
-		this.hideContainers();
+	async browseTorrents() {
 		this.sitePageCounts.clear();
 		await this.browse(1);
-		this.show('menu');
-		this.show('torrents');
+		this.showContainer('torrents');
+	}
+
+	showContainer(id: string) {
+		this.hideContainers();
+		this.show(id);
 	}
 
 	hideContainers(showMenu: boolean = true) {
@@ -236,21 +242,43 @@ export class Client {
 	}
 
 	async browse(page: number) {
+		this.pagingHandler = page => this.browse(page);
+		await this.browseOrSearch(page, site => {
+			const browsingRequest = {
+				site: site.name,
+				page: page
+			};
+			const promise = api.browse(browsingRequest);
+			return promise;
+		});
+	}
+
+	async search(query: string, page: number) {
+		this.pagingHandler = page => this.search(query, page);
+		await this.browseOrSearch(page, site => {
+			const searchRequest = {
+				site: site.name,
+				query: query,
+				categories: null,
+				page: page
+			};
+			const promise = api.search(searchRequest);
+			return promise;
+		});
+	}
+
+	async browseOrSearch(page: number, operation: (site: common.Site) => Promise<common.BrowseResponse>) {
 		await this.setBusy(async () => {
 			this.currentPage = page;
-			let browsePromises: Promise<common.BrowseResponse>[] = [];
+			let promises: Promise<common.BrowseResponse>[] = [];
 			this.sites.forEach(site => {
 				const sitePageCount = this.sitePageCounts.get(site);
 				if (sitePageCount == null || page <= sitePageCount) {
-					const browsingRequest = {
-						site: site.name,
-						page: page
-					};
-					const promise = api.browse(browsingRequest);
-					browsePromises.push(promise);
+					const promise = operation(site);
+					promises.push(promise);
 				}
 			});
-			const browseResults = await Promise.all(browsePromises);
+			const browseResults = await Promise.all(promises);
 			this.renderTorrents(browseResults);
 		});
 	}
@@ -341,7 +369,7 @@ export class Client {
 		const nextPage = this.currentPage + direction;
 		const lastPage = this.getLastPage();
 		if (nextPage >= 1 && nextPage <= lastPage) {
-			await this.browse(nextPage);
+			await this.pagingHandler(nextPage);
 			window.scrollTo(0, 0);
 		}
 	}
