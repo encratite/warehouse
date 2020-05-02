@@ -65,6 +65,10 @@ async function performRequest<ResponseType>(path: string, request: any): Promise
 	const body = JSON.stringify(request);
 	xmlHttpRequest.send(body);
 	const response = await new Promise<ResponseType>((resolve, reject) => {
+		const printAndReject = (message: string) => {
+			console.error(message);
+			reject(message);
+		};
 		xmlHttpRequest.onload = event => {
 			const response = JSON.parse(xmlHttpRequest.responseText);
 			const errorMessage = response.error;
@@ -72,11 +76,11 @@ async function performRequest<ResponseType>(path: string, request: any): Promise
 				resolve(<ResponseType>response);
 			}
 			else {
-				reject(errorMessage);
+				printAndReject(errorMessage);
 			}
 		};
 		xmlHttpRequest.onerror = event => {
-			reject(`Failed to call API "${path}".`);
+			printAndReject(`Failed to call API "${path}".`);
 		};
 	});
 	return response;

@@ -484,6 +484,7 @@ export class Server {
 	}
 
 	async transmissionGetTorrents(ids: number[], fields: string[]): Promise<transmission.GetTorrentResponse> {
+		this.checkTransmission();
 		const options = {
 			arguments: {
 				ids: ids,
@@ -509,6 +510,7 @@ export class Server {
 	}
 
 	async transmissionQueueTorrent(torrentFile: Buffer): Promise<transmission.Torrent> {
+		this.checkTransmission();
 		const torrentFileString = torrentFile.toString('base64');
 		const addTorrentResponse = await new Promise<transmission.Torrent>((resolve, reject) => {
 			this.transmission.addBase64(torrentFileString, {}, (error, torrent) => {
@@ -524,6 +526,7 @@ export class Server {
 	}
 
 	async transmissionDeleteTorrents(ids: number[], deleteTorrent: boolean): Promise<void> {
+		this.checkTransmission();
 		await new Promise((resolve, reject) => {
 			this.transmission.remove(ids, deleteTorrent, error => {
 				if (error == null) {
@@ -849,5 +852,11 @@ export class Server {
 
 	getTorrentSizeLimit(): number {
 		return Server.bytesPerGigabyte * this.configuration.torrentSizeLimit;
+	}
+
+	checkTransmission() {
+		if (this.transmission == null) {
+			throw new Error('Transmission service not available.');
+		}
 	}
 }

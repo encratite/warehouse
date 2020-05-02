@@ -333,10 +333,18 @@ export class Client {
 			const cells = cellStrings.map((cellString, i) => {
 				const cell = document.createElement('td');
 				if (i === torrentNameIndex) {
-					const span = document.createElement('span');
-					span.innerText = cellString;
-					span.onclick = this.onTorrentClick.bind(this);
-					cell.appendChild(span);
+					const torrentLine = document.createElement('div');
+					const errorLine = document.createElement('div');
+					errorLine.className = 'error';
+					const torrentLink = document.createElement('span');
+					torrentLink.className = 'torrent';
+					torrentLink.innerText = cellString;
+					torrentLink.onclick = (ev: MouseEvent) => {
+						this.onTorrentClick(siteTorrent, cell);
+					};
+					torrentLine.appendChild(torrentLink);
+					cell.appendChild(torrentLine);
+					cell.appendChild(errorLine);
 				}
 				else {
 					cell.innerText = cellString;
@@ -360,8 +368,26 @@ export class Client {
 		this.showElement(pageMenu, showMenu);
 	}
 
-	async onTorrentClick(ev: MouseEvent) {
-		this.notImplemented();
+	async onTorrentClick(siteTorrent: SiteTorrent, cell: HTMLTableDataCellElement) {
+		await this.setBusy(async () => {
+			const downloadRequest: common.DownloadRequest = {
+				site: siteTorrent.site.name,
+				id: siteTorrent.torrent.id
+			};
+			const errorLine = cell.querySelector<HTMLDivElement>('.error');
+			try {
+				await api.download(downloadRequest);
+				const torrrentLink = cell.querySelector<HTMLSpanElement>('.torrent');
+				torrrentLink.className = 'torrentDownloaded';
+				torrrentLink.onclick = (ev: MouseEvent) => {
+				};
+				this.hideElement(errorLine);
+			}
+			catch (error) {
+				errorLine.innerText = error.toString();
+				this.showElement(errorLine);
+			}
+		});
 	}
 
 	async onPreviousPageClick(ev: MouseEvent) {

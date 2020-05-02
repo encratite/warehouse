@@ -224,6 +224,7 @@ div.content {
 		border-bottom: 1px #eee solid;
 		padding: 0.6em 0.8em;
 		white-space: nowrap;
+		vertical-align: top;
 
 		&:nth-child(2) {
 			white-space: normal;
@@ -244,13 +245,22 @@ div.content {
 		}
 	}
 
-	span {
+	span.torrent {
 		color: #005bb5;
 		cursor: pointer;
 
 		&:hover {
 			color: #183d61;
 		}
+	}
+
+	span.torrentDownloaded {
+		color: #aaa;
+	}
+
+	.error {
+		display: none;
+		color: #f00;
 	}
 
 	.pageMenu {
