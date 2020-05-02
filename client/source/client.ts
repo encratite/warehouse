@@ -335,6 +335,7 @@ export class Client {
 				if (i === torrentNameIndex) {
 					const span = document.createElement('span');
 					span.innerText = cellString;
+					span.onclick = this.onTorrentClick.bind(this);
 					cell.appendChild(span);
 				}
 				else {
@@ -351,9 +352,16 @@ export class Client {
 	}
 
 	renderPageCount(torrentContainer: HTMLDivElement) {
-		const pageCount = torrentContainer.querySelector<HTMLLIElement>('.pageMenu li:nth-child(2)');
 		const lastPage = this.getLastPage();
+		const pageMenu = torrentContainer.querySelector<HTMLDivElement>('.pageMenu');
+		const pageCount = pageMenu.querySelector<HTMLLIElement>('li:nth-child(2)');
 		pageCount.textContent = `Page ${this.currentPage} of ${lastPage}`;
+		const showMenu = lastPage > 1;
+		this.showElement(pageMenu, showMenu);
+	}
+
+	async onTorrentClick(ev: MouseEvent) {
+		this.notImplemented();
 	}
 
 	async onPreviousPageClick(ev: MouseEvent) {

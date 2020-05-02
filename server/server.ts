@@ -316,9 +316,11 @@ export class Server {
 		validate.string('site', searchRequest.site);
 		validate.string('query', searchRequest.query);
 		validate.array('categories', searchRequest.categories, true);
-		searchRequest.categories.forEach(category => {
-			validate.number('categories[i]', category);
-		});
+		if (searchRequest.categories != null) {
+			searchRequest.categories.forEach(category => {
+				validate.number('categories[i]', category);
+			});
+		}
 		validate.number('page', searchRequest.page);
 
 		const site = this.getSite(searchRequest.site);
