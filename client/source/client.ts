@@ -8,6 +8,10 @@ export class Client {
 	sitePageCounts: Map<common.Site, number> = new Map();
 	pagingHandler: (page: number) => Promise<void>;
 
+	notImplemented() {
+		throw new Error('Not implemented.');
+	}
+
 	async start() {
 		this.initializeInterface();
 		this.validateSession();
@@ -54,10 +58,6 @@ export class Client {
 		for (let child = element.firstChild; child != null; child = element.firstChild) {
 			element.removeChild(child);
 		}
-	}
-
-	notImplemented() {
-		throw new Error('Not implemented.');
 	}
 
 	initializeInterface() {

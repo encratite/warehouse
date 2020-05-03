@@ -9,7 +9,9 @@ export const route = {
 	getTorrents: '/get-torrents',
 	getSubscriptions: '/get-subscriptions',
 	createSubscription: '/create-subscription',
-	deleteSubscription: '/delete-subscription'
+	deleteSubscription: '/delete-subscription',
+	getProfile: '/get-profile',
+	changePassword: '/change-password'
 };
 
 export interface ErrorResponse {
@@ -84,6 +86,20 @@ export interface CreateSubscriptionResponse {
 
 export interface DeleteSubscriptionRequest {
 	subscriptionId: string;
+}
+
+export interface GetProfileResponse {
+	name: string;
+	isAdmin: boolean;
+	created: string;
+	downloads: number;
+	// Size of all downloads, in bytes.
+	downloadSize: number;
+}
+
+export interface ChangePasswordRequest {
+	currentPassword: string;
+	newPassword: string;
 }
 
 export interface Site {

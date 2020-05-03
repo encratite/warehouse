@@ -57,6 +57,10 @@ export class Server {
 		this.transmission = transmission(configuration.transmission);
 	}
 
+	notImplemented() {
+		throw new Error('Not implemented.');
+	}
+
 	async start() {
 		if (this.running === true) {
 			throw new Error('Service is already running.');
@@ -186,6 +190,7 @@ export class Server {
 		this.addRoute(route.getSubscriptions, this.getSubscriptions.bind(this));
 		this.addRoute(route.createSubscription, this.createSubscription.bind(this));
 		this.addRoute(route.deleteSubscription, this.deleteSubscription.bind(this));
+		this.addRoute(route.getProfile, this.getProfile.bind(this));
 	}
 
 	addRoute(path: string, handler: (request: express.Request, response: express.Response) => Promise<void>, whitelistPath: boolean = false) {
@@ -436,6 +441,44 @@ export class Server {
 		if (result.deletedCount === 0) {
 			throw new Error('Invalid subscription ID.');
 		}
+	}
+
+	async getProfile(request: SessionRequest, response: express.Response) {
+		const user = request.user;
+		const downloads = await this.database.download.count({
+			_id: user.id
+		});
+		const aggregateResult = await this.database.download.aggregate([
+			{
+				$match: {
+					userId: user.id
+				}
+			},
+			{
+				$group: {
+					_id: null,
+					size: {
+						$sum: '$size'
+					}
+				}
+			}
+		]);
+		const downloadSize: number = aggregateResult[0].size;
+		const getProfileResponse: common.GetProfileResponse = {
+			name: user.name,
+			isAdmin: user.isAdmin,
+			created: user.created.toISOString(),
+			downloads: downloads,
+			downloadSize: downloadSize
+		};
+		response.send(getProfileResponse);
+	}
+
+	async changePassword(request: SessionRequest, response: express.Response) {
+		const changePasswordRequest = <common.ChangePasswordRequest>request.body;
+		validate.string('currentPassword', changePasswordRequest.currentPassword);
+		validate.string('newPassword', changePasswordRequest.newPassword);
+		this.notImplemented();
 	}
 
 	convertTorrent(torrent: transmission.Torrent): common.TorrentState {
