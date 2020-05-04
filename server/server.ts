@@ -478,7 +478,22 @@ export class Server {
 		const changePasswordRequest = <common.ChangePasswordRequest>request.body;
 		validate.string('currentPassword', changePasswordRequest.currentPassword);
 		validate.string('newPassword', changePasswordRequest.newPassword);
-		this.notImplemented();
+
+		const user = request.user;
+		const currentPasswordHash = await this.hashPassword(changePasswordRequest.currentPassword, user.salt);
+		let success = false;
+		if (Buffer.compare(currentPasswordHash, user.password) === 0) {
+			const newSalt = crypto.randomBytes(Server.cryptoSaltLength);
+			const newPasswordHash = await this.hashPassword(changePasswordRequest.newPassword, newSalt);
+			user.password = newPasswordHash;
+			user.salt = newSalt;
+			await user.save();
+			success = true;
+		}
+		const changePasswordResponse: common.ChangePasswordResponse = {
+			success: success
+		};
+		response.send(changePasswordResponse);
 	}
 
 	convertTorrent(torrent: transmission.Torrent): common.TorrentState {

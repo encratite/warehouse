@@ -102,6 +102,10 @@ export interface ChangePasswordRequest {
 	newPassword: string;
 }
 
+export interface ChangePasswordResponse {
+	success: boolean;
+}
+
 export interface Site {
 	name: string;
 	categories: Category[];
