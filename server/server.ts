@@ -261,8 +261,8 @@ export class Server {
 
 	async login(request: express.Request, response: express.Response) {
 		const loginRequest = <common.LoginRequest>request.body;
-		validate.string('username', loginRequest.username);
-		validate.string('password', loginRequest.password);
+		validate.stringLimit('username', loginRequest.username);
+		validate.stringLimit('password', loginRequest.password);
 
 		const user = await this.database.user.findOne({ name: loginRequest.username });
 		let success = false;
@@ -318,8 +318,8 @@ export class Server {
 
 	async search(request: SessionRequest, response: express.Response) {
 		const searchRequest = <common.SearchRequest>request.body;
-		validate.string('site', searchRequest.site);
-		validate.string('query', searchRequest.query);
+		validate.stringLimit('site', searchRequest.site);
+		validate.stringLimit('query', searchRequest.query);
 		validate.array('categories', searchRequest.categories, true);
 		if (searchRequest.categories != null) {
 			searchRequest.categories.forEach(category => {
@@ -335,7 +335,7 @@ export class Server {
 
 	async download(request: SessionRequest, response: express.Response) {
 		const downloadRequest = <common.DownloadRequest>request.body;
-		validate.string('site', downloadRequest.site);
+		validate.stringLimit('site', downloadRequest.site);
 		validate.number('id', downloadRequest.id);
 
 		const site = this.getSite(downloadRequest.site);
@@ -386,7 +386,7 @@ export class Server {
 	async getSubscriptions(request: SessionRequest, response: express.Response) {
 		const getSubscriptionRequest = <common.GetSubscriptionRequest>request.body;
 		validate.boolean('all', getSubscriptionRequest.all);
-		validate.string('userId', getSubscriptionRequest.userId, true)
+		validate.stringLimit('userId', getSubscriptionRequest.userId, true)
 
 		const conditions: any = {};
 		if (getSubscriptionRequest.all === true) {
@@ -414,8 +414,8 @@ export class Server {
 
 	async createSubscription(request: SessionRequest, response: express.Response) {
 		const createSubscriptionRequest = <common.CreateSubscriptionRequest>request.body;
-		validate.string('pattern', createSubscriptionRequest.pattern);
-		validate.string('category', createSubscriptionRequest.category);
+		validate.stringLimit('pattern', createSubscriptionRequest.pattern);
+		validate.stringLimit('category', createSubscriptionRequest.category);
 
 		this.validatePattern(createSubscriptionRequest.pattern);
 		const subscription = this.database.newSubscription(request.session.userId, createSubscriptionRequest.pattern, createSubscriptionRequest.category);
@@ -428,7 +428,7 @@ export class Server {
 
 	async deleteSubscription(request: SessionRequest, response: express.Response) {
 		const deleteSubscriptionRequest = <common.DeleteSubscriptionRequest>request.body;
-		validate.string('subscriptionId', deleteSubscriptionRequest.subscriptionId);
+		validate.stringLimit('subscriptionId', deleteSubscriptionRequest.subscriptionId);
 
 		const conditions: any = {
 			_id: mongoose.Types.ObjectId(deleteSubscriptionRequest.subscriptionId)
@@ -446,12 +446,12 @@ export class Server {
 	async getProfile(request: SessionRequest, response: express.Response) {
 		const user = request.user;
 		const downloads = await this.database.download.count({
-			_id: user.id
+			userId: user.id
 		});
-		const aggregateResult = await this.database.download.aggregate([
+		const aggregate = await this.database.download.aggregate([
 			{
 				$match: {
-					userId: user.id
+					userId: mongoose.Types.ObjectId(user.id)
 				}
 			},
 			{
@@ -463,7 +463,10 @@ export class Server {
 				}
 			}
 		]);
-		const downloadSize: number = aggregateResult[0].size;
+		let downloadSize: number = 0;
+		if (aggregate.length > 0) {
+			downloadSize = aggregate[0].size;
+		}
 		const getProfileResponse: common.GetProfileResponse = {
 			name: user.name,
 			isAdmin: user.isAdmin,
@@ -476,8 +479,8 @@ export class Server {
 
 	async changePassword(request: SessionRequest, response: express.Response) {
 		const changePasswordRequest = <common.ChangePasswordRequest>request.body;
-		validate.string('currentPassword', changePasswordRequest.currentPassword);
-		validate.string('newPassword', changePasswordRequest.newPassword);
+		validate.stringLimit('currentPassword', changePasswordRequest.currentPassword);
+		validate.stringLimit('newPassword', changePasswordRequest.newPassword);
 
 		const user = request.user;
 		const currentPasswordHash = await this.hashPassword(changePasswordRequest.currentPassword, user.salt);

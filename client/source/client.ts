@@ -151,7 +151,7 @@ export class Client {
 	}
 
 	async onProfileLinkClick(e: MouseEvent) {
-		this.notImplemented();
+		await this.showProfile();
 	}
 
 	async onSearchKeyPress(e: KeyboardEvent) {
@@ -338,7 +338,7 @@ export class Client {
 					errorLine.className = 'error';
 					const torrentLink = document.createElement('span');
 					torrentLink.className = 'torrent';
-					torrentLink.innerText = cellString;
+					torrentLink.textContent = cellString;
 					torrentLink.onclick = (ev: MouseEvent) => {
 						this.onTorrentClick(siteTorrent, cell);
 					};
@@ -347,7 +347,7 @@ export class Client {
 					cell.appendChild(errorLine);
 				}
 				else {
-					cell.innerText = cellString;
+					cell.textContent = cellString;
 				}
 				return cell;
 			});
@@ -384,7 +384,7 @@ export class Client {
 				this.hideElement(errorLine);
 			}
 			catch (error) {
-				errorLine.innerText = error.toString();
+				errorLine.textContent = error.toString();
 				this.showElement(errorLine);
 			}
 		});
@@ -416,6 +416,24 @@ export class Client {
 			}
 		}
 		return lastPage;
+	}
+
+	async showProfile() {
+		await this.setBusy(async () => {
+			const profileData = await api.getProfile();
+			const created = this.getLocaleDateString(profileData.created);
+			const downloadSize = this.getSizeString(profileData.downloadSize);
+			this.setContent('profileName', profileData.name);
+			this.setContent('profileDownloads', profileData.downloads.toString());
+			this.setContent('profileDownloadSize', downloadSize);
+			this.setContent('profileCreated', created);
+			this.showContainer('profile');
+		});
+	}
+
+	setContent(id: string, text: string) {
+		const element = document.getElementById(id);
+		element.textContent = text;
 	}
 
 	getCategoryName(categoryId: number, site: common.Site) {

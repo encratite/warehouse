@@ -285,3 +285,13 @@ div.content {
 		}
 	}
 }
+
+#profile {
+	display: none;
+
+	dt {
+		float: left;
+		width: 10em;
+		font-weight: bold;
+	}
+}

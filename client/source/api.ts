@@ -58,6 +58,17 @@ export async function deleteSubscription(request: common.CreateSubscriptionReque
 	await performRequest<void>(route.deleteSubscription, request);
 }
 
+export async function getProfile(): Promise<common.GetProfileResponse> {
+	const request = {};
+	const response = await performRequest<common.GetProfileResponse>(route.getProfile, request);
+	return response;
+}
+
+export async function changePassword(request: common.ChangePasswordRequest): Promise<common.ChangePasswordResponse> {
+	const response = await performRequest<common.ChangePasswordResponse>(route.changePassword, request);
+	return response;
+}
+
 async function performRequest<ResponseType>(path: string, request: any): Promise<ResponseType> {
 	const xmlHttpRequest = new XMLHttpRequest();
 	xmlHttpRequest.open('POST', `/api${path}`);

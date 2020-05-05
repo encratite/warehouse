@@ -2,8 +2,12 @@ export function number(name: string, value: any, permitNull: boolean = false) {
 	checkType(name, value, permitNull, 'number');
 }
 
-export function string(name: string, value: any, permitNull: boolean = false, maxLength: number = 128) {
+export function string(name: string, value: any, permitNull: boolean = false) {
 	checkType(name, value, permitNull, 'string');
+}
+
+export function stringLimit(name: string, value: any, permitNull: boolean = false, maxLength: number = 128) {
+	string(name, value, permitNull);
 	if (value != null && (<string>value).length > maxLength) {
 		throw new Error(`Length of "${name}" has been exceeded.`);
 	}
