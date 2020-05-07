@@ -289,9 +289,13 @@ div.content {
 #profile {
 	display: none;
 
-	dt {
-		float: left;
-		width: 10em;
+	td:first-child {
 		font-weight: bold;
+		padding-right: 1em;
+	}
+
+	button {
+		width: 13em;
+		margin-top: 1em;
 	}
 }

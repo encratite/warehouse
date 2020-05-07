@@ -445,7 +445,7 @@ export class Server {
 
 	async getProfile(request: SessionRequest, response: express.Response) {
 		const user = request.user;
-		const downloads = await this.database.download.count({
+		const downloads = await this.database.download.countDocuments({
 			userId: user.id
 		});
 		const aggregate = await this.database.download.aggregate([

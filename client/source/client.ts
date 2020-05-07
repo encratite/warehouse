@@ -64,10 +64,11 @@ export class Client {
 		this.initializeLogin();
 		this.initializeMenu();
 		this.initializeTorrents();
+		this.initializeProfile();
 	}
 
 	initializeLogin() {
-		const container = document.querySelector<HTMLDivElement>('#login');
+		const container = <HTMLDivElement>document.getElementById('login');
 		const inputElements = container.querySelectorAll('input');
 		inputElements.forEach((element: HTMLInputElement) => {
 			element.onkeypress = this.onLoginKeyPress.bind(this);
@@ -77,7 +78,7 @@ export class Client {
 	}
 
 	initializeMenu() {
-		const container = document.querySelector<HTMLDivElement>('#menu');
+		const container = <HTMLDivElement>document.getElementById('menu');
 		const inputElement = container.querySelector<HTMLInputElement>('input');
 		inputElement.onkeypress = this.onSearchKeyPress.bind(this);
 		const searchButton = container.querySelector<HTMLButtonElement>('button');
@@ -95,7 +96,7 @@ export class Client {
 	}
 
 	initializeTorrents() {
-		const container = document.querySelector<HTMLDivElement>('#torrents');
+		const container = <HTMLDivElement>document.getElementById('torrents');
 		const pageMenuButtons = container.querySelectorAll('.pageMenu i');
 		const previousPageButton = <HTMLElement>pageMenuButtons[0];
 		const nextPageButton = <HTMLElement>pageMenuButtons[1];
@@ -103,8 +104,13 @@ export class Client {
 		nextPageButton.onclick = this.onNextPageClick.bind(this);
 	}
 
+	initializeProfile() {
+		this.setClickHandler('changePasswordButton', this.onChangePasswordButtonClick.bind(this));
+		this.setClickHandler('logoutButton', this.onLogoutButtonClick.bind(this));
+	}
+
 	async setBusy(action: () => Promise<void>) {
-		const overlay = document.querySelector<HTMLDivElement>('#overlay');
+		const overlay = <HTMLDivElement>document.getElementById('overlay');
 		const buttons = document.querySelectorAll<HTMLInputElement>('input[type="button"]');
 		const setOverlayDisplay = (display: string) => {
 			overlay.style.display = display;
@@ -162,6 +168,14 @@ export class Client {
 
 	async onSearchClick(e: MouseEvent) {
 		await this.searchTorrents();
+	}
+
+	async onChangePasswordButtonClick(e: MouseEvent) {
+		this.notImplemented();
+	}
+
+	async onLogoutButtonClick(e: MouseEvent) {
+		await this.logout();
 	}
 
 	isEnterKey(e: KeyboardEvent) {
@@ -230,7 +244,7 @@ export class Client {
 		containers.forEach(container => {
 			this.hideElement(container);
 		});
-		this.show('menu');
+		this.show('menu',  showMenu);
 	}
 
 	clearTable(table: HTMLTableElement) {
@@ -285,7 +299,7 @@ export class Client {
 
 	renderTorrents(browseResults: common.BrowseResponse[]) {
 		const siteTorrents = this.getSiteTorrents(browseResults);
-		const torrentContainer = document.querySelector<HTMLDivElement>('#torrents');
+		const torrentContainer = <HTMLDivElement>document.getElementById('torrents');
 		const torrentTable = torrentContainer.querySelector<HTMLTableElement>('table');
 		this.clearTable(torrentTable);
 		this.renderTorrentTable(siteTorrents, torrentTable);
@@ -428,6 +442,14 @@ export class Client {
 			this.setContent('profileDownloadSize', downloadSize);
 			this.setContent('profileCreated', created);
 			this.showContainer('profile');
+		});
+	}
+
+	async logout() {
+		await this.setBusy(async () => {
+			await api.logout();
+			this.hideContainers(false);
+			this.showLogin();
 		});
 	}
 

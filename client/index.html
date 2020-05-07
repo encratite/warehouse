@@ -1,85 +1,101 @@
 <!doctype html>
 <html>
-    <head>
-        <title>Warehouse</title>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans&display=swap">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/fontawesome.min.css">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/solid.min.css">
-        <link rel="stylesheet" href="styles/warehouse.css">
-        <link rel="icon" href="images/favicon.ico">
-        <script type="module" src="scripts/warehouse.js"></script>
-    </head>
-    <body>
-        <div id="overlay"></div>
-        <div id="menu">
-            <ul>
-                <li class="logo"><img src="images/logo-white.svg" alt="Warehouse"></li>
-                <li id="browseLink">Browse</li>
-                <li id="subscriptionsLink">Subscriptions</li>
-                <li id="statusLink">Status</li>
-                <li id="profileLink">Profile</li>
-                <li class="search">
-                    <input type="text" id="search" placeholder="Search" maxlength="128">
-                    <button>
-                        <i class="fas fa-search"></i>
-                    </button>
-                </li>
-            </ul>
-        </div>
-        <div id="login">
-            <div class="logo">
-                <img src="images/logo-black.svg" alt="Warehouse">
-            </div>
-            <div class="loginForm">
-                <h1>Log in</h1>
-                <div>
-                    <label for="username">Username</label>
-                    <input type="text" id="username" class="form" placeholder="Enter your username" maxlength="128">
-                </div>
-                <div>
-                    <label for="passsword">Password</label>
-                    <input type="password" id="password" class="form" placeholder="Enter your password" maxlength="128">
-                </div>
-                <button class="primary">Submit</button>
-            </div>
-            <div class="error flex">
-                <div class="triangle"><i class="fas fa-exclamation-triangle"></i></div>
-                <div class="message">Invalid username or password.</div>
-            </div>
-        </div>
-        <div id="torrents" class="content">
-            <table>
-                <tbody>
-                    <tr>
-                        <th>Category</th>
-                        <th>Torrent</th>
-                        <th>Size</th>
-                        <th>Downloads</th>
-                        <th>Seeders</th>
-                        <th>Leechers</th>
-                        <th>Added</th>
-                    </tr>
-                </tbody>
-            </table>
-            <div class="pageMenu">
-                <ul>
-                    <li><i class="fas fa-chevron-left"></i></li>
-                    <li></li>
-                    <li><i class="fas fa-chevron-right"></i></li>
-                </ul>
-            </div>
-        </div>
-        <div id="profile" class="content">
-            <dl>
-                <dt>Name</dt>
-                <dd id="profileName"></dd>
-                <dt>Downloads</dt>
-                <dd id="profileDownloads"></dd>
-                <dt>Downloaded</dt>
-                <dd id="profileDownloadSize"></dd>
-                <dt>Member since</dt>
-                <dd id="profileCreated"></dd>
-            </dl>
-        </div>
-    </body>
+	<head>
+		<title>Warehouse</title>
+		<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans&display=swap">
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/fontawesome.min.css">
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/solid.min.css">
+		<link rel="stylesheet" href="styles/warehouse.css">
+		<link rel="icon" href="images/favicon.ico">
+		<script type="module" src="scripts/warehouse.js"></script>
+	</head>
+	<body>
+		<div id="overlay"></div>
+		<div id="menu">
+			<ul>
+				<li class="logo"><img src="images/logo-white.svg" alt="Warehouse"></li>
+				<li id="browseLink">Browse</li>
+				<li id="subscriptionsLink">Subscriptions</li>
+				<li id="statusLink">Status</li>
+				<li id="profileLink">Profile</li>
+				<li class="search">
+					<input type="text" id="search" placeholder="Search" maxlength="128">
+					<button>
+						<i class="fas fa-search"></i>
+					</button>
+				</li>
+			</ul>
+		</div>
+		<div id="login">
+			<div class="logo">
+				<img src="images/logo-black.svg" alt="Warehouse">
+			</div>
+			<div class="loginForm">
+				<h1>Log in</h1>
+				<div>
+					<label for="username">Username</label>
+					<input type="text" id="username" class="form" placeholder="Enter your username" maxlength="128">
+				</div>
+				<div>
+					<label for="passsword">Password</label>
+					<input type="password" id="password" class="form" placeholder="Enter your password" maxlength="128">
+				</div>
+				<button class="primary">Submit</button>
+			</div>
+			<div class="error flex">
+				<div class="triangle"><i class="fas fa-exclamation-triangle"></i></div>
+				<div class="message">Invalid username or password.</div>
+			</div>
+		</div>
+		<div id="torrents" class="content">
+			<table>
+				<tbody>
+					<tr>
+						<th>Category</th>
+						<th>Torrent</th>
+						<th>Size</th>
+						<th>Downloads</th>
+						<th>Seeders</th>
+						<th>Leechers</th>
+						<th>Added</th>
+					</tr>
+				</tbody>
+			</table>
+			<div class="pageMenu">
+				<ul>
+					<li><i class="fas fa-chevron-left"></i></li>
+					<li></li>
+					<li><i class="fas fa-chevron-right"></i></li>
+				</ul>
+			</div>
+		</div>
+		<div id="profile" class="content">
+			<table>
+				<tbody>
+					<tr>
+						<td>Name</td>
+						<td id="profileName"></td>
+					</tr>
+					<tr>
+						<td>Downloads</td>
+						<td id="profileDownloads"></td>
+					</tr>
+					<tr>
+						<td>Downloaded</td>
+						<td id="profileDownloadSize"></td>
+					</tr>
+					<tr>
+						<td>Member since</td>
+						<td id="profileCreated"></td>
+					</tr>
+				</tbody>
+			</table>
+			<div>
+				<button class="button" id="changePasswordButton">Change password</button>
+			</div>
+			<div>
+				<button class="button" id="logoutButton">Log out</button>
+			</div>
+		</div>
+	</body>
 </html>
