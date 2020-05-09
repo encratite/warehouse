@@ -412,7 +412,7 @@ export class Client {
 				this.hideElement(errorLine);
 			}
 			catch (error) {
-				errorLine.textContent = error;
+				errorLine.textContent = common.getErrorString(error);
 				this.showElement(errorLine);
 			}
 		});
@@ -483,7 +483,7 @@ export class Client {
 			catch (error) {
 				const errorContainer = document.querySelector<HTMLDivElement>('#changePassword .errorBox');
 				const message = errorContainer.querySelector<HTMLDivElement>('.message');
-				message.textContent = error;
+				message.textContent = common.getErrorString(error);
 				this.showElement(errorContainer);
 			}
 		});

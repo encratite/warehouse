@@ -154,3 +154,12 @@ export interface Subscription {
 	// The last time the subscription caused a torrent to be queued, as an ISO date string.
 	lastMatch: string;
 }
+
+export function getErrorString(error: any) {
+	if (error instanceof Error) {
+		return (<Error>error).message;
+	}
+	else {
+		return error.toString();
+	}
+}

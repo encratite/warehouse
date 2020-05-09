@@ -205,7 +205,7 @@ export class Server {
 				await handler(request, response);
 			}
 			catch (error) {
-				const message = error.toString();
+				const message = common.getErrorString(error);
 				this.sendErrorResponse(message, response);
 			}
 		});
@@ -231,6 +231,17 @@ export class Server {
 				throw error;
 			}
 		}
+	}
+
+	async changeUserPassword(username: string, password: string) {
+		const user = await this.database.user.findOne({
+			name: username
+		});
+		const salt = crypto.randomBytes(Server.cryptoSaltLength);
+		const passwordHash = await this.hashPassword(password, salt);
+		user.salt = salt;
+		user.password = passwordHash;
+		await user.save();
 	}
 
 	isDuplicateKeyError(error): boolean {
@@ -486,7 +497,7 @@ export class Server {
 		validate.stringLimit('newPassword', changePasswordRequest.newPassword);
 
 		if (changePasswordRequest.currentPassword.length < Server.minimumPasswordLength) {
-			throw new Error('The password you have entered is too short.');
+			throw new Error('Password too short.');
 		}
 
 		const user = request.user;
