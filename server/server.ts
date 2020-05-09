@@ -38,6 +38,8 @@ export class Server {
 
 	static readonly bytesPerGigabyte = Math.pow(1024, 3);
 
+	static readonly minimumPasswordLength = 10;
+
 	configuration: configurationFile.Configuration;
 	running: boolean = false;
 	app: express.Application;
@@ -191,6 +193,7 @@ export class Server {
 		this.addRoute(route.createSubscription, this.createSubscription.bind(this));
 		this.addRoute(route.deleteSubscription, this.deleteSubscription.bind(this));
 		this.addRoute(route.getProfile, this.getProfile.bind(this));
+		this.addRoute(route.changePassword, this.changePassword.bind(this));
 	}
 
 	addRoute(path: string, handler: (request: express.Request, response: express.Response) => Promise<void>, whitelistPath: boolean = false) {
@@ -481,6 +484,10 @@ export class Server {
 		const changePasswordRequest = <common.ChangePasswordRequest>request.body;
 		validate.stringLimit('currentPassword', changePasswordRequest.currentPassword);
 		validate.stringLimit('newPassword', changePasswordRequest.newPassword);
+
+		if (changePasswordRequest.currentPassword.length < Server.minimumPasswordLength) {
+			throw new Error('The password you have entered is too short.');
+		}
 
 		const user = request.user;
 		const currentPasswordHash = await this.hashPassword(changePasswordRequest.currentPassword, user.salt);

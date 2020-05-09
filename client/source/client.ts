@@ -65,6 +65,7 @@ export class Client {
 		this.initializeMenu();
 		this.initializeTorrents();
 		this.initializeProfile();
+		this.initializeChangePassword();
 	}
 
 	initializeLogin() {
@@ -105,8 +106,13 @@ export class Client {
 	}
 
 	initializeProfile() {
-		this.setClickHandler('changePasswordButton', this.onChangePasswordButtonClick.bind(this));
+		this.setClickHandler('changePasswordButton', this.onShowChangePasswordButtonClick.bind(this));
 		this.setClickHandler('logoutButton', this.onLogoutButtonClick.bind(this));
+	}
+
+	initializeChangePassword() {
+		const changePasswordButton = document.querySelector<HTMLButtonElement>('#changePassword button');
+		changePasswordButton.onclick = this.onChangePasswordButtonClick.bind(this);
 	}
 
 	async setBusy(action: () => Promise<void>) {
@@ -170,12 +176,18 @@ export class Client {
 		await this.searchTorrents();
 	}
 
-	async onChangePasswordButtonClick(e: MouseEvent) {
-		this.notImplemented();
+	async onShowChangePasswordButtonClick(e: MouseEvent) {
+		const id = 'changePassword';
+		this.clearInputs(id);
+		this.showContainer(id);
 	}
 
 	async onLogoutButtonClick(e: MouseEvent) {
 		await this.logout();
+	}
+
+	async onChangePasswordButtonClick(e: MouseEvent) {
+		await this.changePassword();
 	}
 
 	isEnterKey(e: KeyboardEvent) {
@@ -183,12 +195,14 @@ export class Client {
 	}
 
 	showLogin() {
+		const id = 'login';
+		this.clearInputs(id);
 		this.showLoginError(false);
-		this.show('login');
+		this.show(id);
 	}
 
 	showLoginError(show: boolean) {
-		const errorBox = document.querySelector<HTMLDivElement>('#login .error');
+		const errorBox = document.querySelector<HTMLDivElement>('#login .errorBox');
 		this.showElement(errorBox, show);
 	}
 	
@@ -398,7 +412,7 @@ export class Client {
 				this.hideElement(errorLine);
 			}
 			catch (error) {
-				errorLine.textContent = error.toString();
+				errorLine.textContent = error;
 				this.showElement(errorLine);
 			}
 		});
@@ -442,6 +456,36 @@ export class Client {
 			this.setContent('profileDownloadSize', downloadSize);
 			this.setContent('profileCreated', created);
 			this.showContainer('profile');
+		});
+	}
+
+	async changePassword() {
+		await this.setBusy(async () => {
+			try {
+				const currentPassword = this.getInputValue('currentPassword');
+				const newPassword = this.getInputValue('newPassword');
+				const reenterNewPassword = this.getInputValue('reenterNewPassword');
+				if (newPassword !== reenterNewPassword) {
+					throw new Error('The passwords you entered do not match.');
+				}
+				const changePasswordRequest: common.ChangePasswordRequest = {
+					currentPassword: currentPassword,
+					newPassword: newPassword
+				};
+				const changePasswordResponse = await api.changePassword(changePasswordRequest);
+				if (changePasswordResponse.success === true) {
+					await this.showProfile();
+				}
+				else {
+					throw new Error('Your current password did not match.');
+				}
+			}
+			catch (error) {
+				const errorContainer = document.querySelector<HTMLDivElement>('#changePassword .errorBox');
+				const message = errorContainer.querySelector<HTMLDivElement>('.message');
+				message.textContent = error;
+				this.showElement(errorContainer);
+			}
 		});
 	}
 
@@ -501,5 +545,13 @@ export class Client {
 		};
 		const localeDateString = date.toLocaleDateString(undefined, options);
 		return localeDateString;
+	}
+
+	clearInputs(id: string) {
+		const container = document.getElementById(id);
+		const inputs = container.querySelectorAll<HTMLInputElement>('input');
+		inputs.forEach(input => {
+			input.value = '';
+		});
 	}
 }

@@ -74,6 +74,26 @@ div.content {
 	padding: 3em;
 }
 
+$errorColor: #c40000;
+
+div.errorBox {
+	display: none;
+	color: $errorColor;
+	border: 1px solid $errorColor;
+	box-shadow: 0 0 0 4px #fcf4f4 inset;
+	border-radius: 4px;
+	margin-top: 2em;
+	padding: 1em;
+
+	.triangle i {
+		font-size: 2em;
+	}
+
+	.message {
+		padding: 0.3em 0 0 0.7em;
+	}
+}
+
 #overlay {
 	display: none;
 	position: fixed;
@@ -115,26 +135,6 @@ div.content {
 	button {
 		width: 100%;
 		margin-top: 0.5em;
-	}
-
-	$errorColor: #c40000;
-
-	.error {
-		display: none;
-		color: $errorColor;
-		border: 1px solid $errorColor;
-		box-shadow: 0 0 0 4px #fcf4f4 inset;
-		border-radius: 4px;
-		margin-top: 2em;
-		padding: 1em;
-
-		.triangle i {
-			font-size: 2em;
-		}
-
-		.message {
-			padding: 0.3em 0 0 0.7em;
-		}
 	}
 }
 
@@ -260,7 +260,7 @@ div.content {
 
 	.error {
 		display: none;
-		color: #f00;
+		color: $errorColor;
 	}
 
 	.pageMenu {
@@ -289,6 +289,10 @@ div.content {
 #profile {
 	display: none;
 
+	table {
+		margin-bottom: 1em;
+	}
+
 	td:first-child {
 		font-weight: bold;
 		padding-right: 1em;
@@ -296,6 +300,28 @@ div.content {
 
 	button {
 		width: 13em;
-		margin-top: 1em;
+		margin-top: 0.6em;
+	}
+}
+
+#changePassword {
+	display: none;
+	width: 15em;
+
+	h1 {
+		margin-bottom: 1em;
+	}
+
+	input {
+		margin-bottom: 1em;
+	}
+
+	button {
+		margin-top: 0.8em;
+		margin-bottom: 1em;
+	}
+
+	input, button {
+		width: 100%;
 	}
 }
