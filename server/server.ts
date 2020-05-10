@@ -64,7 +64,7 @@ export class Server {
 	}
 
 	async start() {
-		if (this.running === true) {
+		if (this.running) {
 			throw new Error('Service is already running.');
 		}
 		try {
@@ -84,7 +84,7 @@ export class Server {
 	}
 
 	stop(checkState: boolean = true) {
-		if (checkState === true && this.running === true) {
+		if (checkState && this.running) {
 			throw new Error('Service is already running.');
 		}
 		if (this.subscriptionInterval != null) {
@@ -116,7 +116,7 @@ export class Server {
 		}
 		this.releaseCache.clear();
 		this.sites.forEach(site => {
-			if (this.releaseCache.has(site.name) === false) {
+			if (!this.releaseCache.has(site.name)) {
 				this.releaseCache[site.name] = new Set();
 			}
 		});
@@ -156,7 +156,7 @@ export class Server {
 	// Prevent access to most API functions without a valid session.
 	async sessionMiddleware(request: express.Request, response: express.Response, next: () => void) {
 		// Whitelisted paths are exempt from session checks.
-		if (this.whitelistedPaths.includes(request.path) === false) {
+		if (!this.whitelistedPaths.includes(request.path)) {
 			const session = await this.getSession(request);
 			const user = await this.getSessionUser(session);
 			if (user == null) {
@@ -197,7 +197,7 @@ export class Server {
 	}
 
 	addRoute(path: string, handler: (request: express.Request, response: express.Response) => Promise<void>, whitelistPath: boolean = false) {
-		if (whitelistPath === true) {
+		if (whitelistPath) {
 			this.whitelistedPaths.push(path);
 		}
 		this.app.post(path, async (request: express.Request, response: express.Response) => {
@@ -224,7 +224,7 @@ export class Server {
 			await user.save();
 		}
 		catch (error) {
-			if (this.isDuplicateKeyError(error) === true) {
+			if (this.isDuplicateKeyError(error)) {
 				throw new Error('Unable to create user. Username already in use.');
 			}
 			else {
@@ -360,7 +360,7 @@ export class Server {
 		const addTorrentResponse = await this.transmissionQueueTorrent(torrentFile);
 		// Check if the ID returned by the service matches that of any of the torrents previously retrieved.
 		const hadAlreadyBeenAdded = getIdResponse.torrents.some(torrent => torrent.id === addTorrentResponse.id);
-		if (hadAlreadyBeenAdded === false) {
+		if (!hadAlreadyBeenAdded) {
 			// Retrieve the size of the torrent.
 			const getSizeResponse = await this.transmissionGetTorrents([addTorrentResponse.id], ['name', 'totalSize']);
 			let totalSize: number = null;
@@ -403,7 +403,7 @@ export class Server {
 		validate.stringLimit('userId', getSubscriptionRequest.userId, true)
 
 		const conditions: any = {};
-		if (getSubscriptionRequest.all === true) {
+		if (getSubscriptionRequest.all) {
 			// The user requested a list of all subscriptions.
 			this.adminCheck(request);
 		}
@@ -448,7 +448,7 @@ export class Server {
 			_id: mongoose.Types.ObjectId(deleteSubscriptionRequest.subscriptionId)
 		};
 		// Only admins may delete the subscriptions of other users.
-		if (request.user.isAdmin === false) {
+		if (!request.user.isAdmin) {
 			conditions.userId = request.session.userId;
 		}
 		const result = await this.database.subscription.deleteOne(conditions);
@@ -557,7 +557,7 @@ export class Server {
 	}
 
 	adminCheck(request: SessionRequest) {
-		if (request.user.isAdmin === false) {
+		if (!request.user.isAdmin) {
 			throw new Error('Only administrators may perform this operation.');
 		}
 	}
@@ -647,7 +647,7 @@ export class Server {
 				break;
 			}
 			catch (error) {
-				if (this.isDuplicateKeyError(error) === false) {
+				if (!this.isDuplicateKeyError(error)) {
 					throw error;
 				}
 			}
@@ -827,16 +827,16 @@ export class Server {
 			let foundNewTorrents = false;
 			for (let i = 0; i < torrents.length; i++) {
 				const torrent = torrents[i];
-				if (cache.has(torrent.id) === false) {
+				if (!cache.has(torrent.id)) {
 					foundNewTorrents = true;
 					cache.add(torrent.id);
 					await this.checkNewTorrent(torrent, subscriptions, site);
 				}
 			}
-			if (cacheWasEmpty === true) {
+			if (cacheWasEmpty) {
 				break;
 			}
-			else if (foundNewTorrents === false) {
+			else if (!foundNewTorrents) {
 				logging.log('Found no new torrents.');
 				break;
 			}
@@ -912,14 +912,14 @@ export class Server {
 			}
 		});
 		const usernames = matchingUsers.map(user => user.name);
-		if (addEllipsis === true) {
+		if (addEllipsis) {
 			usernames.push('...');
 		}
 		logging.log(`Found ${matchingSubscriptions.length} matching subscription(s) (${usernames.join(', ')}) for new release "${torrent.name}" (ID ${torrent.id}).`);
 	}
 
 	async performSizeCheck(id: number, site: TorrentSite, request: SessionRequest) {
-		if (request.user.isAdmin === false) {
+		if (!request.user.isAdmin) {
 			// Make sure that the size of the release does not exceed the limit set in the service configuration.
 			const torrentInfo = await site.getInfo(id);
 			const torrentSizeLimit = this.getTorrentSizeLimit();

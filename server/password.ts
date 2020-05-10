@@ -13,7 +13,7 @@ function getPasswordCharacters(): string {
 	let characters = '';
 	for (let i = 0; i < 256; i++) {
 		const character = String.fromCharCode(i);
-		if (pattern.test(character) === true) {
+		if (pattern.test(character)) {
 			characters += character;
 		}
 	}

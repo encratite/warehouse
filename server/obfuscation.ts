@@ -11,7 +11,7 @@ export function obfuscate(input: string): string {
 	if (input == null) {
 		return input;
 	}
-	else if (isObfuscated(input) === true) {
+	else if (isObfuscated(input)) {
 		return input;
 	}
 	const key = crypto.randomBytes(keySize);
@@ -27,7 +27,7 @@ export function deobfuscate(input: string): string {
 	if (input == null) {
 		return input;
 	}
-	else if (isObfuscated(input) === false) {
+	else if (!isObfuscated(input)) {
 		return input;
 	}
 	const obfuscated = Buffer.from(input, outputEncoding);

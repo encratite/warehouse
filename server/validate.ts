@@ -22,19 +22,19 @@ export function object(name: string, value: any, permitNull: boolean = false) {
 }
 
 export function array(name: string, value: any, permitNull: boolean = false, permitEmpty: boolean = true) {
-	if (nullCheck(name, value, permitNull) === true) {
+	if (nullCheck(name, value, permitNull)) {
 		return;
 	}
-	if (value instanceof Array === false) {
+	if (!(value instanceof Array)) {
 		throw new Error(`Unexpected type for argument "${name}". Expected an array.`);
 	}
-	if (permitEmpty === false && value.length === 0) {
+	if (!permitEmpty && value.length === 0) {
 		throw new Error(`Array "${name}" must not be empty.`)
 	}
 }
 
 function checkType(name: string, value: any, permitNull: boolean, type: string) {
-	if (nullCheck(name, value, permitNull) === true) {
+	if (nullCheck(name, value, permitNull)) {
 		return;
 	}
 	const valueType = typeof value;
@@ -44,8 +44,8 @@ function checkType(name: string, value: any, permitNull: boolean, type: string) 
 }
 
 function nullCheck(name: string, value: any, permitNull: boolean) {
-	if (permitNull === false && value == null) {
+	if (!permitNull && value == null) {
 		throw new Error(`Argument "${name}" may not be null.`);
 	}
-	return permitNull === true && value == null;
+	return permitNull && value == null;
 }

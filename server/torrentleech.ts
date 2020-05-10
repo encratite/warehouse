@@ -212,7 +212,7 @@ export class TorrentLeech implements site.TorrentSite {
 	}
 
 	async loginCheck() {
-		if (this.loggedIn === false) {
+		if (!this.loggedIn) {
 			await this.login();
 		}
 	}

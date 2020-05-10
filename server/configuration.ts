@@ -91,7 +91,7 @@ export function obfuscate(configuration: Configuration) {
 	if (configuration.mongoDbUri != null) {
 		const pattern = /^mongodb:\/\/.+?:.+?@/;
 		const match = pattern.test(configuration.mongoDbUri);
-		if (match === true) {
+		if (match) {
 			configuration.mongoDbUri = obfuscation.obfuscate(configuration.mongoDbUri);
 		}
 	}

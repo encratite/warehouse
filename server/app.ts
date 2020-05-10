@@ -86,7 +86,7 @@ async function deleteUser(username: string, configurationPath: string) {
 	withServer(configurationPath, async server => {
 		await server.initializeDatabase();
 		const success = await server.deleteUser(username);
-		if (success === true) {
+		if (success) {
 			console.log(`Deleted user "${username}".`);
 		}
 		else {

@@ -19,7 +19,7 @@ export class Client {
 
 	async validateSession() {
 		const response = await api.validateSession();
-		if (response.valid === true) {
+		if (response.valid) {
 			await this.getSites();
 			await this.browseTorrents();
 		}
@@ -46,8 +46,8 @@ export class Client {
 	}
 
 	showElement(element: HTMLElement, show: boolean = true) {
-		const displayStyle = element.classList.contains('flex') === true ? 'flex' : 'block';
-		element.style.display = show === true ? displayStyle : 'none';
+		const displayStyle = element.classList.contains('flex') ? 'flex' : 'block';
+		element.style.display = show ? displayStyle : 'none';
 	}
 
 	hideElement(element: HTMLElement) {
@@ -141,7 +141,7 @@ export class Client {
 	}
 
 	async onLoginKeyPress(e: KeyboardEvent) {
-		if (this.isEnterKey(e) === true) {
+		if (this.isEnterKey(e)) {
 			await this.login();
 		}
 	}
@@ -167,7 +167,7 @@ export class Client {
 	}
 
 	async onSearchKeyPress(e: KeyboardEvent) {
-		if (this.isEnterKey(e) === true) {
+		if (this.isEnterKey(e)) {
 			await this.searchTorrents();
 		}
 	}
@@ -215,7 +215,7 @@ export class Client {
 				password: password
 			};
 			const loginResult = await api.login(loginRequest);
-			if (loginResult.success === true) {
+			if (loginResult.success) {
 				await this.getSites();
 				await this.browseTorrents();
 				this.hide('login');
@@ -427,7 +427,7 @@ export class Client {
 	}
 
 	async showNextPage(reverse: boolean) {
-		const direction = reverse === false ? 1 : -1;
+		const direction = !reverse ? 1 : -1;
 		const nextPage = this.currentPage + direction;
 		const lastPage = this.getLastPage();
 		if (nextPage >= 1 && nextPage <= lastPage) {
@@ -473,7 +473,7 @@ export class Client {
 					newPassword: newPassword
 				};
 				const changePasswordResponse = await api.changePassword(changePasswordRequest);
-				if (changePasswordResponse.success === true) {
+				if (changePasswordResponse.success) {
 					await this.showProfile();
 				}
 				else {
