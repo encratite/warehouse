@@ -119,5 +119,54 @@
 				</div>
 			</div>
 		</div>
+		<div id="subscriptions" class="content">
+			<table>
+				<tbody>
+					<tr>
+						<th>Pattern</th>
+						<th>Category</th>
+						<th>Matches</th>
+						<th>Created</th>
+						<th>Last match</th>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+		<div id="createOrEditSubscription" class="content">
+			<h1>Create subscription</h1>
+			<div>
+				<label for="subscriptionPattern">Pattern</label>
+				<input type="text" id="subscriptionPattern" class="form" placeholder="Enter regular expression" maxlength="128">
+			</div>
+			<table>
+				<tr>
+					<td colspan="2">
+						<input type="radio" name="subscriptionCategory" id="noCategoryRadio" value="none">
+						<label for="noCategoryRadio">No category</label>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<input type="radio" name="subscriptionCategory" id="specifyCategoryRadio" value="category">
+						<label for="specifyCategoryRadio">Specify category</label>
+					</td>
+					<td>
+						<select>
+							<option value="">No categories available</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<input type="radio" name="subscriptionCategory" id="createCategoryRadio" value="create">
+						<label for="createCategoryRadio">Create category</label>
+					</td>
+					<td>
+						<input type="text" id="createCategoryName" class="form" placeholder="Name of category" maxlength="128">
+					</td>
+				</tr>
+			</table>
+			<button class="primary">Create</button>
+		</div>
 	</body>
 </html>

@@ -71,6 +71,7 @@ th {
 }
 
 div.content {
+	display: none;
 	padding: 1em 3em 3em 3em;
 	width: 52.5em;
 	margin: 0 auto 0 auto;
@@ -202,7 +203,6 @@ div.errorBox {
 }
 
 #torrents {
-	display: none;
 	width: 85em;
 
 	table {
@@ -290,8 +290,6 @@ div.errorBox {
 }
 
 #profile {
-	display: none;
-
 	table {
 		margin-bottom: 1em;
 	}
@@ -308,8 +306,6 @@ div.errorBox {
 }
 
 #changePassword {
-	display: none;
-
 	> div {
 		width: 17em;
 	}
@@ -330,4 +326,7 @@ div.errorBox {
 	input, button {
 		width: 100%;
 	}
+}
+
+#createOrEditSubscription {
 }
