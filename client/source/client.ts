@@ -466,7 +466,7 @@ export class Client {
 				const newPassword = this.getInputValue('newPassword');
 				const reenterNewPassword = this.getInputValue('reenterNewPassword');
 				if (newPassword !== reenterNewPassword) {
-					throw new Error('The passwords you entered do not match.');
+					throw new Error('Passwords don\'t match.');
 				}
 				const changePasswordRequest: common.ChangePasswordRequest = {
 					currentPassword: currentPassword,
@@ -477,7 +477,7 @@ export class Client {
 					await this.showProfile();
 				}
 				else {
-					throw new Error('Your current password did not match.');
+					throw new Error('Invalid password.');
 				}
 			}
 			catch (error) {

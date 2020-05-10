@@ -71,7 +71,9 @@ th {
 }
 
 div.content {
-	padding: 3em;
+	padding: 1em 3em 3em 3em;
+	width: 52.5em;
+	margin: 0 auto 0 auto;
 }
 
 $errorColor: #c40000;
@@ -201,13 +203,14 @@ div.errorBox {
 
 #torrents {
 	display: none;
+	width: 85em;
 
 	table {
 		margin: 0 auto;
 		border-spacing: 0;
 		border: 1px #ddd solid;
 		border-radius: 4px;
-		width: 85em;
+		width: 100%;
 	}
 
 	tr:last-child td {
@@ -306,7 +309,10 @@ div.errorBox {
 
 #changePassword {
 	display: none;
-	width: 15em;
+
+	> div {
+		width: 17em;
+	}
 
 	h1 {
 		margin-bottom: 1em;

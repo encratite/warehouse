@@ -496,7 +496,7 @@ export class Server {
 		validate.stringLimit('currentPassword', changePasswordRequest.currentPassword);
 		validate.stringLimit('newPassword', changePasswordRequest.newPassword);
 
-		if (changePasswordRequest.currentPassword.length < Server.minimumPasswordLength) {
+		if (changePasswordRequest.newPassword.length < Server.minimumPasswordLength) {
 			throw new Error('Password too short.');
 		}
 
