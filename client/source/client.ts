@@ -155,7 +155,7 @@ export class Client {
 	}
 
 	async onSubscriptionsLinkClick(e: MouseEvent) {
-		this.notImplemented();
+		await this.showSubscriptions();
 	}
 
 	async onStatusLinkClick(e: MouseEvent) {
@@ -342,49 +342,58 @@ export class Client {
 	}
 
 	renderTorrentTable(siteTorrents: SiteTorrent[], table: HTMLTableElement) {
+		if (siteTorrents.length > 0) {
+			siteTorrents.forEach(siteTorrent => {
+				this.renderTorrent(siteTorrent, table);
+			});
+		}
+		else {
+			this.addEmptyTableRow('No torrents found.', table);
+		}
+	}
+
+	renderTorrent(siteTorrent: SiteTorrent, table: HTMLTableElement) {
 		const body = <HTMLElement>table.querySelector('tbody');
-		siteTorrents.forEach(siteTorrent => {
-			const torrent = siteTorrent.torrent;
-			const categoryName = this.getCategoryName(torrent.categoryId, siteTorrent.site);
-			const sizeString = this.getSizeString(torrent.size);
-			const localeDateString = this.getLocaleDateString(torrent.added);
-			const cellStrings = [
-				categoryName,
-				torrent.name,
-				sizeString,
-				torrent.downloads.toString(),
-				torrent.seeders.toString(),
-				torrent.leechers.toString(),
-				localeDateString
-			];
-			const torrentNameIndex = 1;
-			const cells = cellStrings.map((cellString, i) => {
-				const cell = document.createElement('td');
-				if (i === torrentNameIndex) {
-					const torrentLine = document.createElement('div');
-					const errorLine = document.createElement('div');
-					errorLine.className = 'error';
-					const torrentLink = document.createElement('span');
-					torrentLink.className = 'torrent';
-					torrentLink.textContent = cellString;
-					torrentLink.onclick = (ev: MouseEvent) => {
-						this.onTorrentClick(siteTorrent, cell);
-					};
-					torrentLine.appendChild(torrentLink);
-					cell.appendChild(torrentLine);
-					cell.appendChild(errorLine);
-				}
-				else {
-					cell.textContent = cellString;
-				}
-				return cell;
-			});
-			const row = document.createElement('tr');
-			cells.forEach(cell => {
-				row.appendChild(cell);
-			});
-			body.appendChild(row);
+		const torrent = siteTorrent.torrent;
+		const categoryName = this.getCategoryName(torrent.categoryId, siteTorrent.site);
+		const sizeString = this.getSizeString(torrent.size);
+		const localeDateString = this.getLocaleDateString(torrent.added);
+		const cellStrings = [
+			categoryName,
+			torrent.name,
+			sizeString,
+			torrent.downloads.toString(),
+			torrent.seeders.toString(),
+			torrent.leechers.toString(),
+			localeDateString
+		];
+		const torrentNameIndex = 1;
+		const cells = cellStrings.map((cellString, i) => {
+			const cell = document.createElement('td');
+			if (i === torrentNameIndex) {
+				const torrentLine = document.createElement('div');
+				const errorLine = document.createElement('div');
+				errorLine.className = 'error';
+				const torrentLink = document.createElement('span');
+				torrentLink.className = 'torrent';
+				torrentLink.textContent = cellString;
+				torrentLink.onclick = (ev: MouseEvent) => {
+					this.onTorrentClick(siteTorrent, cell);
+				};
+				torrentLine.appendChild(torrentLink);
+				cell.appendChild(torrentLine);
+				cell.appendChild(errorLine);
+			}
+			else {
+				cell.textContent = cellString;
+			}
+			return cell;
 		});
+		const row = document.createElement('tr');
+		cells.forEach(cell => {
+			row.appendChild(cell);
+		});
+		body.appendChild(row);
 	}
 
 	renderPageCount(torrentContainer: HTMLDivElement) {
@@ -497,6 +506,57 @@ export class Client {
 		});
 	}
 
+	async showSubscriptions() {
+		await this.setBusy(async () => {
+			const getSubscriptionRequest: common.GetSubscriptionRequest = {
+				all: false,
+				userId: null
+			};
+			const subscriptionId = 'subscriptions';
+			const container = document.getElementById(subscriptionId);
+			const table = container.querySelector<HTMLTableElement>('table');
+			const body = <HTMLElement>table.querySelector('tbody');
+			this.clearTable(table);
+			const getSubscriptionResponse = await api.getSubscriptions(getSubscriptionRequest);
+			const subscriptions = getSubscriptionResponse.subscriptions;
+			if (subscriptions.length > 0) {
+				subscriptions.forEach(subscription => {
+					const createdString = this.getLocaleDateString(subscription.created);
+					const lastMatchString = this.getLocaleDateString(subscription.lastMatch);
+					const columns: string[] = [
+						subscription.pattern,
+						subscription.category || '',
+						subscription.matches.toString(),
+						createdString,
+						lastMatchString
+					];
+					const row = document.createElement('tr');
+					columns.forEach(column => {
+						const cell = document.createElement('td');
+						cell.textContent = column;
+						row.appendChild(cell);
+					});
+					body.appendChild(row);
+				});
+			}
+			else {
+				this.addEmptyTableRow("You don't have any subscriptions.", table);
+			}
+			this.showContainer(subscriptionId);
+		});
+	}
+
+	addEmptyTableRow(description: string, table: HTMLTableElement) {
+		const body = table.querySelector<HTMLElement>('tbody');
+		const columns = table.querySelectorAll('th');
+		const row = document.createElement('tr');
+		const cell = document.createElement('td');
+		cell.textContent = description;
+		cell.colSpan = columns.length;
+		row.appendChild(cell);
+		body.appendChild(row);
+	}
+
 	setContent(id: string, text: string) {
 		const element = document.getElementById(id);
 		element.textContent = text;
@@ -533,18 +593,23 @@ export class Client {
 	}
 
 	getLocaleDateString(dateString: string) {
-		const date = new Date(dateString);
-		const numeric = 'numeric';
-		const options = {
-			year: numeric,
-			month: numeric,
-			day: numeric,
-			hour: numeric,
-			minute: numeric,
-			second: numeric
-		};
-		const localeDateString = date.toLocaleDateString(undefined, options);
-		return localeDateString;
+		if (dateString != null) {
+			const date = new Date(dateString);
+			const numeric = 'numeric';
+			const options = {
+				year: numeric,
+				month: numeric,
+				day: numeric,
+				hour: numeric,
+				minute: numeric,
+				second: numeric
+			};
+			const localeDateString = date.toLocaleDateString(undefined, options);
+			return localeDateString;
+		}
+		else {
+			return '-';
+		}
 	}
 
 	clearInputs(id: string) {
