@@ -66,8 +66,35 @@ button {
 	}
 }
 
-th {
-	text-align: left;
+table.data {
+	margin: 0 auto;
+	border-spacing: 0;
+	border: 1px #ddd solid;
+	border-radius: 4px;
+	width: 100%;
+
+	tr:last-child td {
+		border: 0;
+	}
+	
+	th {
+		border-bottom: 1px #ddd solid;
+		padding: 0.6em 0.8em;
+		background-color: #f6f6f6;
+		text-align: left;
+	}
+	
+	td {
+		border-bottom: 1px #eee solid;
+		padding: 0.6em 0.8em;
+		white-space: nowrap;
+		vertical-align: top;
+	}
+
+	td.empty {
+		text-align: center;
+		padding: 1em;
+	}
 }
 
 div.content {
@@ -205,30 +232,7 @@ div.errorBox {
 #torrents {
 	width: 85em;
 
-	table {
-		margin: 0 auto;
-		border-spacing: 0;
-		border: 1px #ddd solid;
-		border-radius: 4px;
-		width: 100%;
-	}
-
-	tr:last-child td {
-		border: 0;
-	}
-
-	th {
-		border-bottom: 1px #ddd solid;
-		padding: 0.6em 0.8em;
-		background-color: #f6f6f6;
-	}
-
 	td {
-		border-bottom: 1px #eee solid;
-		padding: 0.6em 0.8em;
-		white-space: nowrap;
-		vertical-align: top;
-
 		&:nth-child(2) {
 			white-space: normal;
 		}
@@ -328,5 +332,10 @@ div.errorBox {
 	}
 }
 
-#createOrEditSubscription {
+#subscriptions {
+	button {
+		float: right;
+		margin-bottom: 2em;
+		width: 15em;
+	}
 }

@@ -48,7 +48,7 @@
 			</div>
 		</div>
 		<div id="torrents" class="content">
-			<table>
+			<table class="data">
 				<tbody>
 					<tr>
 						<th>Category</th>
@@ -121,7 +121,7 @@
 		</div>
 		<div id="subscriptions" class="content">
 			<button class="primary">Create subscription</button>
-			<table>
+			<table class="data">
 				<tbody>
 					<tr>
 						<th>Pattern</th>
@@ -142,7 +142,7 @@
 			<table>
 				<tr>
 					<td colspan="2">
-						<input type="radio" name="subscriptionCategory" id="noCategoryRadio" value="none">
+						<input type="radio" name="subscriptionCategory" id="noCategoryRadio" value="none" checked>
 						<label for="noCategoryRadio">No category</label>
 					</td>
 				</tr>
@@ -152,7 +152,7 @@
 						<label for="specifyCategoryRadio">Specify category</label>
 					</td>
 					<td>
-						<select>
+						<select disabled>
 							<option value="">No categories available</option>
 						</select>
 					</td>

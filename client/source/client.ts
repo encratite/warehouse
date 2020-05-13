@@ -66,6 +66,7 @@ export class Client {
 		this.initializeTorrents();
 		this.initializeProfile();
 		this.initializeChangePassword();
+		this.initializeSubscriptions();
 	}
 
 	initializeLogin() {
@@ -113,6 +114,11 @@ export class Client {
 	initializeChangePassword() {
 		const changePasswordButton = document.querySelector<HTMLButtonElement>('#changePassword button');
 		changePasswordButton.onclick = this.onChangePasswordButtonClick.bind(this);
+	}
+
+	initializeSubscriptions() {
+		const showCreateSubscriptionButton = document.querySelector<HTMLButtonElement>('#subscriptions button');
+		showCreateSubscriptionButton.onclick = this.onShowCreateSubscriptionButtonClick.bind(this);
 	}
 
 	async setBusy(action: () => Promise<void>) {
@@ -188,6 +194,10 @@ export class Client {
 
 	async onChangePasswordButtonClick(e: MouseEvent) {
 		await this.changePassword();
+	}
+
+	async onShowCreateSubscriptionButtonClick(e: MouseEvent) {
+		this.showContainer('createOrEditSubscription');
 	}
 
 	isEnterKey(e: KeyboardEvent) {
@@ -553,6 +563,7 @@ export class Client {
 		const cell = document.createElement('td');
 		cell.textContent = description;
 		cell.colSpan = columns.length;
+		cell.className = 'empty';
 		row.appendChild(cell);
 		body.appendChild(row);
 	}
