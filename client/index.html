@@ -33,11 +33,11 @@
 			<div class="loginForm">
 				<h1>Log in</h1>
 				<div>
-					<label for="username">Username</label>
+					<label for="username" class="formLabel">Username</label>
 					<input type="text" id="username" class="form" placeholder="Enter your username" maxlength="128">
 				</div>
 				<div>
-					<label for="passsword">Password</label>
+					<label for="passsword" class="formLabel">Password</label>
 					<input type="password" id="password" class="form" placeholder="Enter your password" maxlength="128">
 				</div>
 				<button class="primary">Submit</button>
@@ -101,15 +101,15 @@
 			<div>
 				<h1>Change password</h1>
 				<div>
-					<label for="currentPassword">Current password</label>
+					<label for="currentPassword" class="formLabel">Current password</label>
 					<input type="password" id="currentPassword" class="form" maxlength="128">
 				</div>
 				<div>
-					<label for="newPassword">New password</label>
+					<label for="newPassword" class="formLabel">New password</label>
 					<input type="password" id="newPassword" class="form" maxlength="128">
 				</div>
 				<div>
-					<label for="reenterNewPassword">Reenter new password</label>
+					<label for="reenterNewPassword" class="formLabel">Reenter new password</label>
 					<input type="password" id="reenterNewPassword" class="form" maxlength="128">
 				</div>
 				<button class="primary">Change password</button>
@@ -136,14 +136,24 @@
 		<div id="createOrEditSubscription" class="content">
 			<h1>Create subscription</h1>
 			<div>
-				<label for="subscriptionPattern">Pattern</label>
+				<label for="subscriptionPattern" class="formLabel">Pattern</label>
 				<input type="text" id="subscriptionPattern" class="form" placeholder="Enter regular expression" maxlength="128">
 			</div>
-			<table>
+			<label for="categoryTable" class="formLabel">Category</label>
+			<table id="categoryTable">
 				<tr>
 					<td colspan="2">
 						<input type="radio" name="subscriptionCategory" id="noCategoryRadio" value="none" checked>
-						<label for="noCategoryRadio">No category</label>
+						<label for="noCategoryRadio">None</label>
+					</td>
+				</tr>
+				<tr>
+					<td>
+						<input type="radio" name="subscriptionCategory" id="createCategoryRadio" value="create">
+						<label for="createCategoryRadio">Create category</label>
+					</td>
+					<td>
+						<input type="text" id="createCategoryName" class="form" placeholder="Name of category" maxlength="128" disabled>
 					</td>
 				</tr>
 				<tr>
@@ -155,15 +165,6 @@
 						<select disabled>
 							<option value="">No categories available</option>
 						</select>
-					</td>
-				</tr>
-				<tr>
-					<td>
-						<input type="radio" name="subscriptionCategory" id="createCategoryRadio" value="create">
-						<label for="createCategoryRadio">Create category</label>
-					</td>
-					<td>
-						<input type="text" id="createCategoryName" class="form" placeholder="Name of category" maxlength="128">
 					</td>
 				</tr>
 			</table>

@@ -14,7 +14,7 @@ h1 {
 	margin-top: 0;
 }
 
-label {
+label.formLabel {
 	font-weight: bold;
 	display: block;
 	margin-bottom: 0.2em;
@@ -28,7 +28,29 @@ input.form {
 	border-top-color: #949494;
 	border-radius: 3px;
 	box-shadow: 0 1px 0 rgba(255, 255, 255, .5), 0 1px 0 rgba(0, 0, 0, .07) inset;
-	outline: 0;
+}
+
+select {
+	padding: 0.3em;
+	box-shadow: 0 1px 0 rgba(255, 255, 255, .6) inset;
+	border-radius: 2px;
+	background-color: rgb(231, 233, 236);
+	color: #c1baba;
+}
+
+@-moz-document url-prefix() {
+	$inputSelectHeight: 2.21em;
+
+	input.form {
+		height: $inputSelectHeight;
+	}
+
+	select {
+		height: $inputSelectHeight;
+		-webkit-appearance: none;
+		border: 1px solid #aaa;
+		border-radius: 3px;
+	}
 }
 
 @mixin button-border-color {
@@ -336,6 +358,53 @@ div.errorBox {
 	button {
 		float: right;
 		margin-bottom: 2em;
+		width: 15em;
+	}
+}
+
+#createOrEditSubscription {
+	#subscriptionPattern {
+		width: 15em;
+		margin-bottom: 1.5em;
+	}
+
+	table {
+		padding: 0.25em 1em 1em 0.75em;
+		border-radius: 4px;
+		border: 1px #ddd solid;
+		margin-bottom: 2.5em;
+		margin-top: 0.3em;
+
+		select {
+			width: 100%;
+		}
+
+		td {
+			line-height: 2.2em;
+
+			> * {
+				vertical-align: middle;
+			}
+
+			&:first-child {
+				padding-right: 1.5em;
+			}
+
+			&:nth-child(2) {
+				width: 15em;
+
+				input {
+					width: 100%;
+				}
+			}
+
+			input[type="radio"] {
+				margin-bottom: 0.2em;
+			}
+		}
+	}
+
+	button {
 		width: 15em;
 	}
 }
