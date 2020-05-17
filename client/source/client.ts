@@ -7,6 +7,7 @@ export class Client {
 	currentPage: number;
 	sitePageCounts: Map<common.Site, number> = new Map();
 	pagingHandler: (page: number) => Promise<void>;
+	subscriptionCategories: string[];
 
 	notImplemented() {
 		throw new Error('Not implemented.');
@@ -197,7 +198,7 @@ export class Client {
 	}
 
 	async onShowCreateSubscriptionButtonClick(e: MouseEvent) {
-		this.showContainer('createOrEditSubscription');
+		this.showCreateOrEditSubscription();
 	}
 
 	isEnterKey(e: KeyboardEvent) {
@@ -529,6 +530,7 @@ export class Client {
 			this.clearTable(table);
 			const getSubscriptionResponse = await api.getSubscriptions(getSubscriptionRequest);
 			const subscriptions = getSubscriptionResponse.subscriptions;
+			this.setSubscriptionCategories(subscriptions);
 			if (subscriptions.length > 0) {
 				subscriptions.forEach(subscription => {
 					const createdString = this.getLocaleDateString(subscription.created);
@@ -554,6 +556,46 @@ export class Client {
 			}
 			this.showContainer(subscriptionId);
 		});
+	}
+
+	showCreateOrEditSubscription() {
+		const containerId = 'createOrEditSubscription';
+		const container = <HTMLDivElement>document.getElementById(containerId);
+		const noCategoryRadio = <HTMLInputElement>document.getElementById('noCategoryRadio');
+		noCategoryRadio.checked = true;
+		const createCategoryName = <HTMLInputElement>document.getElementById('createCategoryName');
+		createCategoryName.disabled = true;
+		createCategoryName.value = '';
+		const categoriesSelect = container.querySelector<HTMLSelectElement>('select');
+		this.removeChildren(categoriesSelect);
+		categoriesSelect.disabled = true;
+		let subscriptionCategories: string[];
+		if (this.subscriptionCategories.length > 0) {
+			subscriptionCategories = this.subscriptionCategories;
+		}
+		else {
+			subscriptionCategories = [
+				'No categories available'
+			];
+		}
+		this.subscriptionCategories.forEach(subscriptionCategory => {
+			const option = document.createElement('option');
+			option.textContent = subscriptionCategory;
+			option.value = subscriptionCategory;
+			categoriesSelect.appendChild(option);
+		});
+		this.showContainer(containerId);
+	}
+
+	setSubscriptionCategories(subscriptions: common.Subscription[]) {
+		const subscriptionCategories = new Set<string>();
+		subscriptions.forEach(subscription => {
+			if (subscription.category != null) {
+				subscriptionCategories.add(subscription.category);
+			}
+		});
+		this.subscriptionCategories = Array.from(subscriptionCategories.values());
+		this.subscriptionCategories.sort();
 	}
 
 	addEmptyTableRow(description: string, table: HTMLTableElement) {
