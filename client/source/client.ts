@@ -1,6 +1,7 @@
 import * as api from './api.js';
 import * as common from './common.js';
 import { SiteTorrent } from './sitetorrent.js';
+import * as e from 'express';
 
 export class Client {
 	sites: common.Site[];
@@ -118,8 +119,17 @@ export class Client {
 	}
 
 	initializeSubscriptions() {
-		const showCreateSubscriptionButton = document.querySelector<HTMLButtonElement>('#subscriptions button');
+		const subscriptions = <HTMLDivElement>document.getElementById('subscriptions');
+		const showCreateSubscriptionButton = subscriptions.querySelector<HTMLButtonElement>('button');
 		showCreateSubscriptionButton.onclick = this.onShowCreateSubscriptionButtonClick.bind(this);
+
+		const createOrEditSubscription = <HTMLDivElement>document.getElementById('createOrEditSubscription');
+		const radioButtons = createOrEditSubscription.querySelectorAll<HTMLInputElement>('input[type="radio"]');
+		radioButtons.forEach(radioButton => {
+			radioButton.onclick = this.onSubscriptionRadioButtonClick.bind(this);
+		});
+		const createSubscriptionButton = createOrEditSubscription.querySelector<HTMLInputElement>('button');
+		createSubscriptionButton.onclick = this.onCreateSubscriptionClick.bind(this);
 	}
 
 	async setBusy(action: () => Promise<void>) {
@@ -199,6 +209,20 @@ export class Client {
 
 	async onShowCreateSubscriptionButtonClick(e: MouseEvent) {
 		this.showCreateOrEditSubscription();
+	}
+
+	onSubscriptionRadioButtonClick(e: MouseEvent) {
+		const createCategoryRadio = <HTMLInputElement>document.getElementById('createCategoryRadio');
+		const createCategoryName = <HTMLInputElement>document.getElementById('createCategoryName');
+		createCategoryName.disabled = !createCategoryRadio.checked;
+
+		const specifyCategoryRadio = <HTMLInputElement>document.getElementById('specifyCategoryRadio');
+		const categoriesSelect = document.querySelector<HTMLSelectElement>('#createOrEditSubscription select');
+		categoriesSelect.disabled = !specifyCategoryRadio.checked;
+	}
+
+	async onCreateSubscriptionClick(e: MouseEvent) {
+		await this.createSubscription();
 	}
 
 	isEnterKey(e: KeyboardEvent) {
@@ -558,6 +582,41 @@ export class Client {
 		});
 	}
 
+	async createSubscription() {
+		await this.setBusy(async () => {
+			try {
+				const createOrEditSubscription = <HTMLDivElement>document.getElementById('createOrEditSubscription');
+				const pattern = this.getInputValue('subscriptionPattern');
+				const radioButtons = createOrEditSubscription.querySelectorAll<HTMLInputElement>('input[type="radio"]');
+				let categoryMode: string = null;
+				radioButtons.forEach(radioButton => {
+					if (radioButton.checked) {
+						categoryMode = radioButton.value;
+					}
+				});
+				const newCategoryName = this.getInputValue('createCategoryName');
+				const existingCategorySelect = createOrEditSubscription.querySelector<HTMLSelectElement>('select');
+				const existingCategoryName = existingCategorySelect.value;
+				let category: string = null;
+				if (categoryMode === 'create') {
+					category = newCategoryName;
+				}
+				else if (categoryMode === 'category') {
+					category = existingCategoryName;
+				}
+				const request: common.CreateSubscriptionRequest = {
+					pattern: pattern,
+					category: category
+				};
+				await api.createSubscription(request);
+				this.showSubscriptions();
+			}
+			catch (error) {
+				this.notImplemented();
+			}
+		});
+	}
+
 	showCreateOrEditSubscription() {
 		const containerId = 'createOrEditSubscription';
 		const container = <HTMLDivElement>document.getElementById(containerId);
@@ -578,7 +637,7 @@ export class Client {
 				'No categories available'
 			];
 		}
-		this.subscriptionCategories.forEach(subscriptionCategory => {
+		subscriptionCategories.forEach(subscriptionCategory => {
 			const option = document.createElement('option');
 			option.textContent = subscriptionCategory;
 			option.value = subscriptionCategory;
