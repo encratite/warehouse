@@ -525,10 +525,7 @@ export class Client {
 				}
 			}
 			catch (error) {
-				const errorContainer = document.querySelector<HTMLDivElement>('#changePassword .errorBox');
-				const message = errorContainer.querySelector<HTMLDivElement>('.message');
-				message.textContent = common.getErrorString(error);
-				this.showElement(errorContainer);
+				this.showErrorBox('changePassword', error);
 			}
 		});
 	}
@@ -584,8 +581,9 @@ export class Client {
 
 	async createSubscription() {
 		await this.setBusy(async () => {
+			const createOrEditSubscriptionId = 'createOrEditSubscription'
 			try {
-				const createOrEditSubscription = <HTMLDivElement>document.getElementById('createOrEditSubscription');
+				const createOrEditSubscription = <HTMLDivElement>document.getElementById(createOrEditSubscriptionId);
 				const pattern = this.getInputValue('subscriptionPattern');
 				const radioButtons = createOrEditSubscription.querySelectorAll<HTMLInputElement>('input[type="radio"]');
 				let categoryMode: string = null;
@@ -612,7 +610,7 @@ export class Client {
 				this.showSubscriptions();
 			}
 			catch (error) {
-				this.notImplemented();
+				this.showErrorBox(createOrEditSubscriptionId, error);
 			}
 		});
 	}
@@ -730,5 +728,13 @@ export class Client {
 		inputs.forEach(input => {
 			input.value = '';
 		});
+	}
+
+	showErrorBox(id: string, error: Error) {
+		const container = <HTMLDivElement>document.getElementById(id);
+		const errorBox = container.querySelector<HTMLDivElement>('.errorBox');
+		const message = errorBox.querySelector<HTMLDivElement>('.message');
+		message.textContent = common.getErrorString(error);
+		this.showElement(errorBox);
 	}
 }
