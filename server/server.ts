@@ -411,25 +411,25 @@ export class Server {
 			if (getSubscriptionRequest.userId != null) {
 				// The user requested a list of subscriptions of a particular user.
 				this.adminCheck(request);
-				conditions._id = mongoose.Types.ObjectId(getSubscriptionRequest.userId);
+				conditions.userId = mongoose.Types.ObjectId(getSubscriptionRequest.userId);
 			}
 			else {
 				// The user requested a list of their own subscriptions.
-				conditions._id = request.session.userId;
+				conditions.userId = request.session.userId;
 			}
 		}
 		const subscriptions = await this.database.subscription.find(conditions);
 		const responseSubscriptions = subscriptions.map(subscription => this.convertSubscription(subscription));
-		const getSubscriptionResopnse: common.GetSubscriptionResponse = {
+		const getSubscriptionResponse: common.GetSubscriptionResponse = {
 			subscriptions: responseSubscriptions
 		};
-		response.send(getSubscriptionResopnse);
+		response.send(getSubscriptionResponse);
 	}
 
 	async createSubscription(request: SessionRequest, response: express.Response) {
 		const createSubscriptionRequest = <common.CreateSubscriptionRequest>request.body;
 		validate.stringLimit('pattern', createSubscriptionRequest.pattern);
-		validate.stringLimit('category', createSubscriptionRequest.category);
+		validate.stringLimit('category', createSubscriptionRequest.category, true);
 
 		this.validatePattern(createSubscriptionRequest.pattern);
 		const subscription = this.database.newSubscription(request.session.userId, createSubscriptionRequest.pattern, createSubscriptionRequest.category);
@@ -484,7 +484,7 @@ export class Server {
 		const getProfileResponse: common.GetProfileResponse = {
 			name: user.name,
 			isAdmin: user.isAdmin,
-			created: user.created.toISOString(),
+			created: this.getDateString(user.created),
 			downloads: downloads,
 			downloadSize: downloadSize
 		};
@@ -526,7 +526,7 @@ export class Server {
 			peers: torrent.peers.length,
 			size: torrent.totalSize,
 			state: torrent.status,
-			added: added.toISOString()
+			added: this.getDateString(added)
 		};
 	}
 
@@ -535,9 +535,18 @@ export class Server {
 			pattern: subscription.pattern,
 			category: subscription.category,
 			matches: subscription.matches,
-			created: subscription.created.toISOString(),
-			lastMatch: subscription.lastMatch.toISOString()
+			created: this.getDateString(subscription.created),
+			lastMatch: this.getDateString(subscription.lastMatch)
 		};
+	}
+
+	getDateString(date: Date) {
+		if (date != null) {
+			return date.toISOString();
+		}
+		else {
+			return null;
+		}
 	}
 
 	validatePattern(pattern: string) {

@@ -505,6 +505,7 @@ export class Client {
 
 	async changePassword() {
 		await this.setBusy(async () => {
+			const changePasswordId = 'changePassword'
 			try {
 				const currentPassword = this.getInputValue('currentPassword');
 				const newPassword = this.getInputValue('newPassword');
@@ -523,9 +524,10 @@ export class Client {
 				else {
 					throw new Error('Invalid password.');
 				}
+				this.hideErrorBox(changePasswordId);
 			}
 			catch (error) {
-				this.showErrorBox('changePassword', error);
+				this.showErrorBox(changePasswordId, error);
 			}
 		});
 	}
@@ -608,6 +610,7 @@ export class Client {
 				};
 				await api.createSubscription(request);
 				this.showSubscriptions();
+				this.hideErrorBox(createOrEditSubscriptionId);
 			}
 			catch (error) {
 				this.showErrorBox(createOrEditSubscriptionId, error);
@@ -730,11 +733,21 @@ export class Client {
 		});
 	}
 
-	showErrorBox(id: string, error: Error) {
-		const container = <HTMLDivElement>document.getElementById(id);
+	getErrorBox(containerId: string): HTMLDivElement {
+		const container = <HTMLDivElement>document.getElementById(containerId);
 		const errorBox = container.querySelector<HTMLDivElement>('.errorBox');
+		return errorBox;
+	}
+
+	showErrorBox(containerId: string, error: Error) {
+		const errorBox = this.getErrorBox(containerId);
 		const message = errorBox.querySelector<HTMLDivElement>('.message');
 		message.textContent = common.getErrorString(error);
 		this.showElement(errorBox);
+	}
+
+	hideErrorBox(containerId: string) {
+		const errorBox = this.getErrorBox(containerId);
+		this.hideElement(errorBox);
 	}
 }

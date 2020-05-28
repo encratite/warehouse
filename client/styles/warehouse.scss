@@ -360,9 +360,15 @@ div.errorBox {
 		margin-bottom: 2em;
 		width: 15em;
 	}
+
+	td:nth-child(3) {
+		text-align: right;
+	}
 }
 
 #createOrEditSubscription {
+	width: 30em;
+
 	#subscriptionPattern {
 		width: 15em;
 		margin-bottom: 1.5em;
@@ -374,6 +380,7 @@ div.errorBox {
 		border: 1px #ddd solid;
 		margin-bottom: 2.5em;
 		margin-top: 0.3em;
+		width: 100%;
 
 		select {
 			width: 100%;
