@@ -758,6 +758,8 @@ export class Server {
 	}
 
 	setInterval(handler: () => void, seconds: number) {
+		// Call the handler immediately to perform subscription and disk space checks.
+		handler();
 		const milliseconds = 1000 * seconds;
 		const timeout = setInterval(handler, milliseconds);
 		return timeout;

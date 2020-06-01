@@ -364,6 +364,16 @@ div.errorBox {
 	td:nth-child(3) {
 		text-align: right;
 	}
+
+	.fa-times {
+		margin-left: 1em;
+		cursor: pointer;
+		visibility: hidden;
+
+		&:hover {
+			visibility: visible;
+		}
+	}
 }
 
 #createOrEditSubscription {

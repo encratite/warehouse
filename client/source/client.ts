@@ -38,6 +38,15 @@ export class Client {
 		this.sites = sitesResponse.sites;
 	}
 
+	createElement<K extends keyof HTMLElementTagNameMap>(tagName: K, parent: HTMLElement, className?: string): HTMLElementTagNameMap[K] {
+		const element = document.createElement(tagName);
+		parent.appendChild(element);
+		if (className != null) {
+			element.className = className;
+		}
+		return element;
+	}
+
 	show(id: string, show: boolean = true) {
 		const element = document.getElementById(id);
 		this.showElement(element, show);
@@ -403,32 +412,22 @@ export class Client {
 			localeDateString
 		];
 		const torrentNameIndex = 1;
-		const cells = cellStrings.map((cellString, i) => {
-			const cell = document.createElement('td');
+		const row = this.createElement('tr', body);
+		cellStrings.forEach((cellString, i) => {
+			const cell = this.createElement('td', row);
 			if (i === torrentNameIndex) {
-				const torrentLine = document.createElement('div');
-				const errorLine = document.createElement('div');
-				errorLine.className = 'error';
-				const torrentLink = document.createElement('span');
-				torrentLink.className = 'torrent';
+				const torrentLine = this.createElement('div', cell);
+				const errorLine = this.createElement('div', cell, 'error');
+				const torrentLink = this.createElement('span', torrentLine, 'torrent');
 				torrentLink.textContent = cellString;
 				torrentLink.onclick = (ev: MouseEvent) => {
 					this.onTorrentClick(siteTorrent, cell);
-				};
-				torrentLine.appendChild(torrentLink);
-				cell.appendChild(torrentLine);
-				cell.appendChild(errorLine);
+				}
 			}
 			else {
 				cell.textContent = cellString;
 			}
-			return cell;
 		});
-		const row = document.createElement('tr');
-		cells.forEach(cell => {
-			row.appendChild(cell);
-		});
-		body.appendChild(row);
 	}
 
 	renderPageCount(torrentContainer: HTMLDivElement) {
@@ -511,7 +510,7 @@ export class Client {
 				const newPassword = this.getInputValue('newPassword');
 				const reenterNewPassword = this.getInputValue('reenterNewPassword');
 				if (newPassword !== reenterNewPassword) {
-					throw new Error('Passwords don\'t match.');
+					throw new Error("Passwords don't match.");
 				}
 				const changePasswordRequest: common.ChangePasswordRequest = {
 					currentPassword: currentPassword,
@@ -556,22 +555,7 @@ export class Client {
 			this.setSubscriptionCategories(subscriptions);
 			if (subscriptions.length > 0) {
 				subscriptions.forEach(subscription => {
-					const createdString = this.getLocaleDateString(subscription.created);
-					const lastMatchString = this.getLocaleDateString(subscription.lastMatch);
-					const columns: string[] = [
-						subscription.pattern,
-						subscription.category || '',
-						subscription.matches.toString(),
-						createdString,
-						lastMatchString
-					];
-					const row = document.createElement('tr');
-					columns.forEach(column => {
-						const cell = document.createElement('td');
-						cell.textContent = column;
-						row.appendChild(cell);
-					});
-					body.appendChild(row);
+					this.addSubscriptionRow(subscription, body);
 				});
 			}
 			else {
@@ -639,10 +623,9 @@ export class Client {
 			];
 		}
 		subscriptionCategories.forEach(subscriptionCategory => {
-			const option = document.createElement('option');
+			const option = this.createElement('option', categoriesSelect);
 			option.textContent = subscriptionCategory;
 			option.value = subscriptionCategory;
-			categoriesSelect.appendChild(option);
 		});
 		this.showContainer(containerId);
 	}
@@ -658,16 +641,46 @@ export class Client {
 		this.subscriptionCategories.sort();
 	}
 
+	addSubscriptionRow(subscription: common.Subscription, body: HTMLElement) {
+		const row = this.createElement('tr', body);
+
+		// Pattern cell.
+		const patternCell = this.createElement('td', row);
+		const subscriptionLink = this.createElement('span', patternCell);
+		subscriptionLink.textContent = subscription.pattern;
+
+		// Category cell.
+		const categoryCell = this.createElement('td', row);
+		if (subscription.category != null) {
+			categoryCell.textContent = subscription.category;
+		}
+		else {
+			const description = this.createElement('i', categoryCell);
+			description.textContent = 'None';
+		}
+
+		// Other cells.
+		const createdString = this.getLocaleDateString(subscription.created);
+		const lastMatchString = this.getLocaleDateString(subscription.lastMatch);
+		const columns: string[] = [
+			subscription.matches.toString(),
+			createdString,
+			lastMatchString
+		];
+		columns.forEach(column => {
+			const cell = this.createElement('td', row);
+			cell.textContent = column;
+		});
+	}
+
 	addEmptyTableRow(description: string, table: HTMLTableElement) {
 		const body = table.querySelector<HTMLElement>('tbody');
 		const columns = table.querySelectorAll('th');
-		const row = document.createElement('tr');
-		const cell = document.createElement('td');
+		const row = this.createElement('tr', body);
+		const cell = this.createElement('td', row);
 		cell.textContent = description;
 		cell.colSpan = columns.length;
-		cell.className = 'empty';
-		row.appendChild(cell);
-		body.appendChild(row);
+		cell.className = 'empty'
 	}
 
 	setContent(id: string, text: string) {
