@@ -100,8 +100,8 @@ export class TorrentLeech implements site.TorrentSite {
 	request: any;
 
 	initialize(settings: Site) {
-		this.username = settings.username;
-		this.password = settings.password;
+		this.username = <string>settings.username;
+		this.password = <string>settings.password;
 		this.request = request.defaults({
 			jar: true,
 			headers: TorrentLeech.headers,

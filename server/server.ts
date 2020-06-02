@@ -213,7 +213,7 @@ export class Server {
 
 	async initializeDatabase() {
 		this.database = new Database();
-		await this.database.connect(this.configuration.mongoDbUri);
+		await this.database.connect(<string>this.configuration.mongoDbUri);
 	}
 
 	async createUser(username: string, password: string, isAdmin: boolean) {

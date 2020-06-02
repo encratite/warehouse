@@ -6,6 +6,28 @@ export function string(name: string, value: any, permitNull: boolean = false) {
 	checkType(name, value, permitNull, 'string');
 }
 
+export function obfuscatedString(name: string, value: any, permitNull: boolean = false) {
+	if (nullCheck(name, value, permitNull)) {
+		return;
+	}
+	if (value instanceof Array) {
+		const array = <any[]>value;
+		if (array.length != 1) {
+			throw new Error(`Invalid array size in obfuscated string "${name}".`);
+		}
+		const innerValueType = typeof array[0];
+		if (innerValueType !== 'string') {
+			throw new Error(`Unexpected inner type "${innerValueType}" for obfuscated string "${name}". Expected "string".`);
+		}
+	}
+	else {
+		const valueType = typeof value;
+		if (valueType !== 'string') {
+			throw new Error(`Unexpected type "${valueType}" for obfuscated string "${name}". Expected "string".`);
+		}
+	}
+}
+
 export function stringLimit(name: string, value: any, permitNull: boolean = false, maxLength: number = 128) {
 	string(name, value, permitNull);
 	if (value != null && (<string>value).length > maxLength) {

@@ -15,8 +15,8 @@ declare namespace t {
 	interface TransmissionOptions {
 		host: string;
 		port: number;
-		username: string;
-		password: string;
+		username: string | string[];
+		password: string | string[];
 		ssl: boolean;
 		url: string;
 	}

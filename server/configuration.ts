@@ -23,7 +23,7 @@ export interface Configuration {
 	externalHostname: string;
 	// Connection string used to access the MongoDB service.
 	// Required: Yes
-	mongoDbUri: string;
+	mongoDbUri: string | string[];
 	// Duration of intervals between successive checks for new torrents across all sites, in seconds.
 	// Required: No
 	// Default: 180
@@ -52,10 +52,10 @@ export interface Site {
 	name: string;
 	// The username required to log into the site.
 	// Required: Yes
-	username: string;
+	username: string | string[];
 	// The password required to log into the site.
 	// Required: Yes
-	password: string;
+	password: string | string[];
 }
 
 export interface FreeDiskSpaceSettings {
@@ -88,7 +88,7 @@ export async function write(configuration: Configuration, path: string) {
 }
 
 export function obfuscate(configuration: Configuration) {
-	if (configuration.mongoDbUri != null) {
+	if (configuration.mongoDbUri != null && typeof configuration.mongoDbUri === 'string') {
 		const pattern = /^mongodb:\/\/.+?:.+?@/;
 		const match = pattern.test(configuration.mongoDbUri);
 		if (match) {
@@ -123,7 +123,7 @@ function validateConfiguration(configuration: Configuration) {
 	validate.number('listenPort', configuration.listenPort);
 	validate.string('listenHostname', configuration.listenHostname, true);
 	validate.string('externalHostname', configuration.externalHostname, true);
-	validate.string('mongoDbUri', configuration.mongoDbUri);
+	validate.obfuscatedString('mongoDbUri', configuration.mongoDbUri);
 	validate.number('subscriptionInterval', configuration.subscriptionInterval, true);
 	validate.number('torrentSizeLimit', configuration.torrentSizeLimit, true);
 	const freeDiskSpace = configuration.freeDiskSpace;
@@ -135,15 +135,15 @@ function validateConfiguration(configuration: Configuration) {
 	configuration.sites.forEach(site => {
 		validate.object('sites[i]', site);
 		validate.string('sites[i].name', site.name);
-		validate.string('sites[i].username', site.username);
-		validate.string('sites[i].password', site.password);
+		validate.obfuscatedString('sites[i].username', site.username);
+		validate.obfuscatedString('sites[i].password', site.password);
 	});
 	const transmission = configuration.transmission;
 	validate.object('transmission', transmission);
 	validate.string('transmission.host', transmission.host, true);
 	validate.number('transmission.port', transmission.port, true);
-	validate.string('transmission.username', transmission.username);
-	validate.string('transmission.password', transmission.password);
+	validate.obfuscatedString('transmission.username', transmission.username);
+	validate.obfuscatedString('transmission.password', transmission.password);
 	validate.boolean('transmission.ssl', transmission.ssl, true);
 	validate.string('transmission.url', transmission.url, true);
 }
