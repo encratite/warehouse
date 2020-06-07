@@ -830,27 +830,33 @@ export class Server {
 	async checkNewTorrents(site: TorrentSite, subscriptions: Subscription[]) {
 		const cache: Set<number> = this.releaseCache[site.name];
 		const cacheWasEmpty = cache.size === 0;
+		let loadMorePages = true;
+		let foundNewTorrent = false;
 		let pages: number = null;
-		for (let page = 1; pages === null || page <= pages; page++) {
+		for (let page = 1; pages === null || page <= pages && loadMorePages; page++) {
 			const browseResults = await site.browse(page);
 			const torrents = browseResults.torrents;
 			pages = browseResults.pages;
-			let foundNewTorrents = false;
 			for (let i = 0; i < torrents.length; i++) {
 				const torrent = torrents[i];
-				if (!cache.has(torrent.id)) {
-					foundNewTorrents = true;
+				if (cache.has(torrent.id)) {
+					// The page had already been partially processed.
+					// Stop loading more pages after processing the remaining torrents.
+					loadMorePages = false;
+				}
+				else {
 					cache.add(torrent.id);
 					await this.checkNewTorrent(torrent, subscriptions, site);
+					foundNewTorrent = true;
 				}
 			}
 			if (cacheWasEmpty) {
+				// Don't retrieve more than one page on startup.
 				break;
 			}
-			else if (!foundNewTorrents) {
-				logging.log('Found no new torrents.');
-				break;
-			}
+		}
+		if (!foundNewTorrent) {
+			logging.log('Found no new torrents.');
 		}
 	}
 
@@ -873,7 +879,7 @@ export class Server {
 			}
 		}
 		else {
-			logging.log(`No matching subscription for new release ${torrent.name} (ID ${torrent.id}).`);
+			logging.log(`No matching subscription for new release "${torrent.name}" (ID ${torrent.id}).`);
 		}
 	}
 

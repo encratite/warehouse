@@ -605,8 +605,11 @@ export class Client {
 	showCreateOrEditSubscription() {
 		const containerId = 'createOrEditSubscription';
 		const container = <HTMLDivElement>document.getElementById(containerId);
+		const subscriptionPattern = <HTMLInputElement>document.getElementById('subscriptionPattern');
+		subscriptionPattern.value = '';
 		const noCategoryRadio = <HTMLInputElement>document.getElementById('noCategoryRadio');
 		noCategoryRadio.checked = true;
+		const specifyCategoryRadio = <HTMLInputElement>document.getElementById('specifyCategoryRadio');
 		const createCategoryName = <HTMLInputElement>document.getElementById('createCategoryName');
 		createCategoryName.disabled = true;
 		createCategoryName.value = '';
@@ -614,7 +617,8 @@ export class Client {
 		this.removeChildren(categoriesSelect);
 		categoriesSelect.disabled = true;
 		let subscriptionCategories: string[];
-		if (this.subscriptionCategories.length > 0) {
+		const hasSubscriptionCategories = this.subscriptionCategories.length > 0;
+		if (hasSubscriptionCategories) {
 			subscriptionCategories = this.subscriptionCategories;
 		}
 		else {
@@ -622,6 +626,7 @@ export class Client {
 				'No categories available'
 			];
 		}
+		specifyCategoryRadio.disabled = !hasSubscriptionCategories;
 		subscriptionCategories.forEach(subscriptionCategory => {
 			const option = this.createElement('option', categoriesSelect);
 			option.textContent = subscriptionCategory;
