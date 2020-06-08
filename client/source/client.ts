@@ -417,8 +417,8 @@ export class Client {
 			const cell = this.createElement('td', row);
 			if (i === torrentNameIndex) {
 				const torrentLine = this.createElement('div', cell);
-				const errorLine = this.createElement('div', cell, 'error');
-				const torrentLink = this.createElement('span', torrentLine, 'torrent');
+				this.createElement('div', cell, 'error');
+				const torrentLink = this.createElement('span', torrentLine, 'link');
 				torrentLink.textContent = cellString;
 				torrentLink.onclick = (ev: MouseEvent) => {
 					this.onTorrentClick(siteTorrent, cell);
@@ -448,7 +448,7 @@ export class Client {
 			const errorLine = cell.querySelector<HTMLDivElement>('.error');
 			try {
 				await api.download(downloadRequest);
-				const torrrentLink = cell.querySelector<HTMLSpanElement>('.torrent');
+				const torrrentLink = cell.querySelector<HTMLSpanElement>('.link');
 				torrrentLink.className = 'torrentDownloaded';
 				torrrentLink.onclick = (ev: MouseEvent) => {
 				};
@@ -570,7 +570,11 @@ export class Client {
 			const createOrEditSubscriptionId = 'createOrEditSubscription'
 			try {
 				const createOrEditSubscription = <HTMLDivElement>document.getElementById(createOrEditSubscriptionId);
-				const pattern = this.getInputValue('subscriptionPattern');
+				let pattern = this.getInputValue('subscriptionPattern');
+				pattern = pattern.trim();
+				if (!this.hasPrintableCharacters(pattern)) {
+					throw new Error('Pattern is empty.');
+				}
 				const radioButtons = createOrEditSubscription.querySelectorAll<HTMLInputElement>('input[type="radio"]');
 				let categoryMode: string = null;
 				radioButtons.forEach(radioButton => {
@@ -602,20 +606,25 @@ export class Client {
 		});
 	}
 
-	showCreateOrEditSubscription() {
+	hasPrintableCharacters(input: string) {
+		const pattern = /[\x21-\x7f]/;
+		const output = pattern.exec(input) != null;
+		return output;
+	}
+
+	showCreateOrEditSubscription(subscription: common.Subscription = null) {
 		const containerId = 'createOrEditSubscription';
 		const container = <HTMLDivElement>document.getElementById(containerId);
 		const subscriptionPattern = <HTMLInputElement>document.getElementById('subscriptionPattern');
-		subscriptionPattern.value = '';
+		subscriptionPattern.value = subscription != null ? subscription.pattern : '';
 		const noCategoryRadio = <HTMLInputElement>document.getElementById('noCategoryRadio');
-		noCategoryRadio.checked = true;
 		const specifyCategoryRadio = <HTMLInputElement>document.getElementById('specifyCategoryRadio');
+		<HTMLInputElement>document.getElementById('createCategoryRadio');
 		const createCategoryName = <HTMLInputElement>document.getElementById('createCategoryName');
 		createCategoryName.disabled = true;
 		createCategoryName.value = '';
 		const categoriesSelect = container.querySelector<HTMLSelectElement>('select');
 		this.removeChildren(categoriesSelect);
-		categoriesSelect.disabled = true;
 		let subscriptionCategories: string[];
 		const hasSubscriptionCategories = this.subscriptionCategories.length > 0;
 		if (hasSubscriptionCategories) {
@@ -631,8 +640,24 @@ export class Client {
 			const option = this.createElement('option', categoriesSelect);
 			option.textContent = subscriptionCategory;
 			option.value = subscriptionCategory;
+			option.selected = option.value == subscription.category;
 		});
 		this.showContainer(containerId);
+		if (subscription != null) {
+			if (subscription.category != null) {
+				specifyCategoryRadio.checked = true;
+				categoriesSelect.disabled = false
+			}
+			else {
+				noCategoryRadio.checked = true;
+				categoriesSelect.disabled = true;
+			}
+		}
+		else {
+			noCategoryRadio.checked = true;
+			categoriesSelect.disabled = true;
+		}
+
 	}
 
 	setSubscriptionCategories(subscriptions: common.Subscription[]) {
@@ -651,8 +676,11 @@ export class Client {
 
 		// Pattern cell.
 		const patternCell = this.createElement('td', row);
-		const subscriptionLink = this.createElement('span', patternCell);
+		const subscriptionLink = this.createElement('span', patternCell, 'link');
 		subscriptionLink.textContent = subscription.pattern;
+		subscriptionLink.onclick = (ev: MouseEvent) => {
+			this.showCreateOrEditSubscription(subscription);
+		};
 
 		// Category cell.
 		const categoryCell = this.createElement('td', row);

@@ -145,6 +145,15 @@ div.errorBox {
 	}
 }
 
+span.link {
+	color: #005bb5;
+	cursor: pointer;
+
+	&:hover {
+		color: #183d61;
+	}
+}
+
 #overlay {
 	display: none;
 	position: fixed;
@@ -270,15 +279,6 @@ div.errorBox {
 		&:nth-child(6) {
 			font-weight: bold;
 			color: #d00210;
-		}
-	}
-
-	span.torrent {
-		color: #005bb5;
-		cursor: pointer;
-
-		&:hover {
-			color: #183d61;
 		}
 	}
 
