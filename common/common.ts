@@ -9,6 +9,7 @@ export const route = {
 	getTorrents: '/get-torrents',
 	getSubscriptions: '/get-subscriptions',
 	createSubscription: '/create-subscription',
+	editSubscription: '/edit-subscription',
 	deleteSubscription: '/delete-subscription',
 	getProfile: '/get-profile',
 	changePassword: '/change-password'
@@ -80,6 +81,12 @@ export interface CreateSubscriptionRequest {
 	category: string;
 }
 
+export interface EditSubscriptionRequest {
+	subscriptionId: string;
+	pattern: string;
+	category: string;
+}
+
 export interface CreateSubscriptionResponse {
 	subscriptionId: string;
 }
@@ -146,6 +153,7 @@ export interface TorrentState {
 }
 
 export interface Subscription {
+	id: string;
 	pattern: string;
 	category: string;
 	matches: number;

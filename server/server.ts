@@ -191,6 +191,7 @@ export class Server {
 		this.addRoute(route.getTorrents, this.getTorrents.bind(this));
 		this.addRoute(route.getSubscriptions, this.getSubscriptions.bind(this));
 		this.addRoute(route.createSubscription, this.createSubscription.bind(this));
+		this.addRoute(route.editSubscription, this.editSubscription.bind(this));
 		this.addRoute(route.deleteSubscription, this.deleteSubscription.bind(this));
 		this.addRoute(route.getProfile, this.getProfile.bind(this));
 		this.addRoute(route.changePassword, this.changePassword.bind(this));
@@ -440,6 +441,30 @@ export class Server {
 		response.send(createSubscriptionResponse);
 	}
 
+	async editSubscription(request: SessionRequest, response: express.Response) {
+		const editSubscriptionRequest = <common.EditSubscriptionRequest>request.body;
+		validate.stringLimit('subscriptionId', editSubscriptionRequest.subscriptionId);
+		validate.stringLimit('pattern', editSubscriptionRequest.pattern);
+		validate.stringLimit('category', editSubscriptionRequest.category, true);
+
+		this.validatePattern(editSubscriptionRequest.pattern);
+		const conditions: any = {
+			_id: mongoose.Types.ObjectId(editSubscriptionRequest.subscriptionId)
+		};
+		// Only admins may edit the subscriptions of other users.
+		if (!request.user.isAdmin) {
+			conditions.userId = request.session.userId;
+		}
+		const subscription = await this.database.subscription.findOne(conditions);
+		if (subscription == null) {
+			throw new Error('Invalid subscription ID.');
+		}
+		subscription.pattern = editSubscriptionRequest.pattern;
+		subscription.category = editSubscriptionRequest.category;
+		await subscription.save();
+		response.send({});
+	}
+
 	async deleteSubscription(request: SessionRequest, response: express.Response) {
 		const deleteSubscriptionRequest = <common.DeleteSubscriptionRequest>request.body;
 		validate.stringLimit('subscriptionId', deleteSubscriptionRequest.subscriptionId);
@@ -532,6 +557,7 @@ export class Server {
 
 	convertSubscription(subscription: Subscription): common.Subscription {
 		return {
+			id: subscription._id.toString(),
 			pattern: subscription.pattern,
 			category: subscription.category,
 			matches: subscription.matches,

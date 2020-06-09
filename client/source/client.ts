@@ -9,6 +9,7 @@ export class Client {
 	sitePageCounts: Map<common.Site, number> = new Map();
 	pagingHandler: (page: number) => Promise<void>;
 	subscriptionCategories: string[];
+	editSubscription: common.Subscription;
 
 	notImplemented() {
 		throw new Error('Not implemented.');
@@ -103,7 +104,7 @@ export class Client {
 		this.setClickHandler('profileLink', this.onProfileLinkClick.bind(this));
 	}
 
-	setClickHandler(id: string, onClick: (ev: MouseEvent) => void) {
+	setClickHandler(id: string, onClick: (e: MouseEvent) => void) {
 		const element = document.getElementById(id);
 		element.onclick = onClick;
 	}
@@ -137,8 +138,12 @@ export class Client {
 		radioButtons.forEach(radioButton => {
 			radioButton.onclick = this.onSubscriptionRadioButtonClick.bind(this);
 		});
-		const createSubscriptionButton = createOrEditSubscription.querySelector<HTMLInputElement>('button');
+
+		const createSubscriptionButton = <HTMLInputElement>document.getElementById('createSubscriptionButton');
 		createSubscriptionButton.onclick = this.onCreateSubscriptionClick.bind(this);
+
+		const editSubscriptionButton = <HTMLInputElement>document.getElementById('editSubscriptionButton');
+		editSubscriptionButton.onclick = this.onEditSubscriptionClick.bind(this);
 	}
 
 	async setBusy(action: () => Promise<void>) {
@@ -231,7 +236,11 @@ export class Client {
 	}
 
 	async onCreateSubscriptionClick(e: MouseEvent) {
-		await this.createSubscription();
+		await this.createOrEditSubscription();
+	}
+
+	async onEditSubscriptionClick(e: MouseEvent) {
+		await this.createOrEditSubscription(this.editSubscription);
 	}
 
 	isEnterKey(e: KeyboardEvent) {
@@ -420,7 +429,7 @@ export class Client {
 				this.createElement('div', cell, 'error');
 				const torrentLink = this.createElement('span', torrentLine, 'link');
 				torrentLink.textContent = cellString;
-				torrentLink.onclick = (ev: MouseEvent) => {
+				torrentLink.onclick = (e: MouseEvent) => {
 					this.onTorrentClick(siteTorrent, cell);
 				}
 			}
@@ -450,7 +459,7 @@ export class Client {
 				await api.download(downloadRequest);
 				const torrrentLink = cell.querySelector<HTMLSpanElement>('.link');
 				torrrentLink.className = 'torrentDownloaded';
-				torrrentLink.onclick = (ev: MouseEvent) => {
+				torrrentLink.onclick = (e: MouseEvent) => {
 				};
 				this.hideElement(errorLine);
 			}
@@ -461,11 +470,11 @@ export class Client {
 		});
 	}
 
-	async onPreviousPageClick(ev: MouseEvent) {
+	async onPreviousPageClick(e: MouseEvent) {
 		await this.showNextPage(true);
 	}
 
-	async onNextPageClick(ev: MouseEvent) {
+	async onNextPageClick(e: MouseEvent) {
 		await this.showNextPage(false);
 	}
 
@@ -565,7 +574,7 @@ export class Client {
 		});
 	}
 
-	async createSubscription() {
+	async createOrEditSubscription(subscription: common.Subscription = null) {
 		await this.setBusy(async () => {
 			const createOrEditSubscriptionId = 'createOrEditSubscription'
 			try {
@@ -592,11 +601,21 @@ export class Client {
 				else if (categoryMode === 'category') {
 					category = existingCategoryName;
 				}
-				const request: common.CreateSubscriptionRequest = {
-					pattern: pattern,
-					category: category
-				};
-				await api.createSubscription(request);
+				if (subscription == null) {
+					const createSubscriptionRequest: common.CreateSubscriptionRequest = {
+						pattern: pattern,
+						category: category
+					};
+					await api.createSubscription(createSubscriptionRequest);
+				}
+				else {
+					const editSubscriptionRequest: common.EditSubscriptionRequest = {
+						subscriptionId: subscription.id,
+						pattern: pattern,
+						category: category
+					};
+					await api.editSubscription(editSubscriptionRequest);
+				}
 				this.showSubscriptions();
 				this.hideErrorBox(createOrEditSubscriptionId);
 			}
@@ -615,14 +634,24 @@ export class Client {
 	showCreateOrEditSubscription(subscription: common.Subscription = null) {
 		const containerId = 'createOrEditSubscription';
 		const container = <HTMLDivElement>document.getElementById(containerId);
+
 		const subscriptionPattern = <HTMLInputElement>document.getElementById('subscriptionPattern');
 		subscriptionPattern.value = subscription != null ? subscription.pattern : '';
+
 		const noCategoryRadio = <HTMLInputElement>document.getElementById('noCategoryRadio');
 		const specifyCategoryRadio = <HTMLInputElement>document.getElementById('specifyCategoryRadio');
-		<HTMLInputElement>document.getElementById('createCategoryRadio');
+
 		const createCategoryName = <HTMLInputElement>document.getElementById('createCategoryName');
 		createCategoryName.disabled = true;
 		createCategoryName.value = '';
+
+		const createSubscriptionButton = <HTMLInputElement>document.getElementById('createSubscriptionButton');
+		const editSubscriptionButton = <HTMLInputElement>document.getElementById('editSubscriptionButton');
+		const showEditButton = (show: boolean) => {
+			this.showElement(createSubscriptionButton, !show);
+			this.showElement(editSubscriptionButton, show);
+		};
+
 		const categoriesSelect = container.querySelector<HTMLSelectElement>('select');
 		this.removeChildren(categoriesSelect);
 		let subscriptionCategories: string[];
@@ -640,7 +669,7 @@ export class Client {
 			const option = this.createElement('option', categoriesSelect);
 			option.textContent = subscriptionCategory;
 			option.value = subscriptionCategory;
-			option.selected = option.value == subscription.category;
+			option.selected = subscription != null && option.value == subscription.category;
 		});
 		this.showContainer(containerId);
 		if (subscription != null) {
@@ -652,12 +681,14 @@ export class Client {
 				noCategoryRadio.checked = true;
 				categoriesSelect.disabled = true;
 			}
+			showEditButton(true);
 		}
 		else {
 			noCategoryRadio.checked = true;
 			categoriesSelect.disabled = true;
+			showEditButton(false);
 		}
-
+		this.editSubscription = subscription;
 	}
 
 	setSubscriptionCategories(subscriptions: common.Subscription[]) {
@@ -678,7 +709,7 @@ export class Client {
 		const patternCell = this.createElement('td', row);
 		const subscriptionLink = this.createElement('span', patternCell, 'link');
 		subscriptionLink.textContent = subscription.pattern;
-		subscriptionLink.onclick = (ev: MouseEvent) => {
+		subscriptionLink.onclick = (e: MouseEvent) => {
 			this.showCreateOrEditSubscription(subscription);
 		};
 
