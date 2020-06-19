@@ -480,6 +480,7 @@ export class Server {
 		if (result.deletedCount === 0) {
 			throw new Error('Invalid subscription ID.');
 		}
+		response.send({});
 	}
 
 	async getProfile(request: SessionRequest, response: express.Response) {

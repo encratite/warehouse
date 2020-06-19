@@ -58,7 +58,7 @@ export async function editSubscription(request: common.EditSubscriptionRequest) 
 	await performRequest<void>(route.editSubscription, request);
 }
 
-export async function deleteSubscription(request: common.CreateSubscriptionRequest) {
+export async function deleteSubscription(request: common.DeleteSubscriptionRequest) {
 	await performRequest<void>(route.deleteSubscription, request);
 }
 

@@ -144,6 +144,9 @@ export class Client {
 
 		const editSubscriptionButton = <HTMLInputElement>document.getElementById('editSubscriptionButton');
 		editSubscriptionButton.onclick = this.onEditSubscriptionClick.bind(this);
+
+		const deleteSubscriptionButton = <HTMLInputElement>document.getElementById('deleteSubscriptionButton');
+		deleteSubscriptionButton.onclick = this.onDeleteSubscriptionClick.bind(this);
 	}
 
 	async setBusy(action: () => Promise<void>) {
@@ -241,6 +244,14 @@ export class Client {
 
 	async onEditSubscriptionClick(e: MouseEvent) {
 		await this.createOrEditSubscription(this.editSubscription);
+	}
+
+	async onDeleteSubscriptionClick(e: MouseEvent) {
+		const deleteSubscriptionRequest: common.DeleteSubscriptionRequest = {
+			subscriptionId: this.editSubscription.id
+		};
+		await api.deleteSubscription(deleteSubscriptionRequest);
+		await this.showSubscriptions();
 	}
 
 	isEnterKey(e: KeyboardEvent) {
@@ -616,7 +627,7 @@ export class Client {
 					};
 					await api.editSubscription(editSubscriptionRequest);
 				}
-				this.showSubscriptions();
+				await this.showSubscriptions();
 				this.hideErrorBox(createOrEditSubscriptionId);
 			}
 			catch (error) {
@@ -647,9 +658,11 @@ export class Client {
 
 		const createSubscriptionButton = <HTMLInputElement>document.getElementById('createSubscriptionButton');
 		const editSubscriptionButton = <HTMLInputElement>document.getElementById('editSubscriptionButton');
+		const deleteSubscriptionButton = <HTMLInputElement>document.getElementById('deleteSubscriptionButton');
 		const showEditButton = (show: boolean) => {
 			this.showElement(createSubscriptionButton, !show);
 			this.showElement(editSubscriptionButton, show);
+			this.showElement(deleteSubscriptionButton, show);
 		};
 
 		const categoriesSelect = container.querySelector<HTMLSelectElement>('select');

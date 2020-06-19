@@ -357,7 +357,7 @@ span.link {
 	button {
 		float: right;
 		margin-bottom: 2em;
-		width: 15em;
+		width: 14.5em;
 	}
 
 	td:nth-child(3) {
@@ -384,6 +384,11 @@ span.link {
 	}
 
 	#editSubscriptionButton {
+		display: none;
+		margin-right: 1em;
+	}
+
+	#deleteSubscriptionButton {
 		display: none;
 	}
 
@@ -425,7 +430,8 @@ span.link {
 	}
 
 	button {
-		width: 15em;
+		width: 14.5em;
+		float: left;
 	}
 
 	.errorBox {
