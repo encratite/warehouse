@@ -27,6 +27,11 @@ export interface Subscription extends mongoose.Document {
 	lastMatch: Date;
 }
 
+export interface BlockedPatterns extends mongoose.Document {
+	userId: mongoose.Types.ObjectId;
+	blockedPatterns: string[];
+}
+
 export interface Download extends mongoose.Document {
 	userId: mongoose.Types.ObjectId;
 	time: Date;
@@ -130,6 +135,19 @@ const subscriptionSchema = new mongoose.Schema({
 	}
 });
 
+const blockedPatternsSchema = new mongoose.Schema({
+	userId: {
+		type: mongoose.Schema.Types.ObjectId,
+		ref: userModelName,
+		required: true,
+		index: true
+	},
+	blockedPatterns: {
+		type: [String],
+		required: true
+	}
+});
+
 const downloadSchema = new mongoose.Schema({
 	userId: {
 		type: mongoose.Schema.Types.ObjectId,
@@ -161,6 +179,7 @@ export class Database {
 	user: mongoose.Model<User>;
 	session: mongoose.Model<Session>;
 	subscription: mongoose.Model<Subscription>;
+	blockedPatterns: mongoose.Model<BlockedPatterns>;
 	download: mongoose.Model<Download>;
 
 	async connect(uri: string) {
@@ -215,6 +234,13 @@ export class Database {
 			userId: userId,
 			pattern: pattern,
 			category: category
+		});
+	}
+
+	newBlockedPatterns(userId: mongoose.Types.ObjectId, blockedPatterns: string[]): BlockedPatterns {
+		return new this.blockedPatterns({
+			userId: userId,
+			blockedPatterns: blockedPatterns
 		});
 	}
 

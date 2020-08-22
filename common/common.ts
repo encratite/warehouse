@@ -11,6 +11,8 @@ export const route = {
 	createSubscription: '/create-subscription',
 	editSubscription: '/edit-subscription',
 	deleteSubscription: '/delete-subscription',
+	getBlockedPatterns: '/get-blocked-patterns',
+	setBlockedPatterns: '/set-blocked-patterns',
 	getProfile: '/get-profile',
 	changePassword: '/change-password'
 };
@@ -93,6 +95,19 @@ export interface CreateSubscriptionResponse {
 
 export interface DeleteSubscriptionRequest {
 	subscriptionId: string;
+}
+
+export interface GetBlockedPatternsRequest {
+	userId: string;
+}
+
+export interface GetBlockedPatternsResponse {
+	blockedPatterns: string[];
+}
+
+export interface SetBlockedPatternsRequest {
+	userId: string;
+	blockedPatterns: string[];
 }
 
 export interface GetProfileResponse {

@@ -193,6 +193,8 @@ export class Server {
 		this.addRoute(route.createSubscription, this.createSubscription.bind(this));
 		this.addRoute(route.editSubscription, this.editSubscription.bind(this));
 		this.addRoute(route.deleteSubscription, this.deleteSubscription.bind(this));
+		this.addRoute(route.getBlockedPatterns, this.getBlockedPatterns.bind(this));
+		this.addRoute(route.setBlockedPatterns, this.setBlockedPatterns.bind(this));
 		this.addRoute(route.getProfile, this.getProfile.bind(this));
 		this.addRoute(route.changePassword, this.changePassword.bind(this));
 	}
@@ -481,6 +483,20 @@ export class Server {
 			throw new Error('Invalid subscription ID.');
 		}
 		response.send({});
+	}
+
+	async getBlockedPatterns(request: SessionRequest, response: express.Response) {
+		const getBlockedPatternsRequest = <common.GetBlockedPatternsRequest>request.body;
+		validate.stringLimit('userId', getBlockedPatternsRequest.userId, true)
+
+		this.notImplemented();
+	}
+
+	async setBlockedPatterns(request: SessionRequest, response: express.Response) {
+		const setBlockedPatternsRequest = <common.SetBlockedPatternsRequest>request.body;
+		validate.stringLimit('userId', setBlockedPatternsRequest.userId, true)
+
+		this.notImplemented();
 	}
 
 	async getProfile(request: SessionRequest, response: express.Response) {
