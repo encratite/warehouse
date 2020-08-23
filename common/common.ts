@@ -11,8 +11,8 @@ export const route = {
 	createSubscription: '/create-subscription',
 	editSubscription: '/edit-subscription',
 	deleteSubscription: '/delete-subscription',
-	getBlockedPatterns: '/get-blocked-patterns',
-	setBlockedPatterns: '/set-blocked-patterns',
+	getBlocklist: '/get-blocklist',
+	setBlocklist: '/set-blocklist',
 	getProfile: '/get-profile',
 	changePassword: '/change-password'
 };
@@ -97,17 +97,21 @@ export interface DeleteSubscriptionRequest {
 	subscriptionId: string;
 }
 
-export interface GetBlockedPatternsRequest {
+export interface GetBlocklistRequest {
+	// Only specified when retrieving the blocklist of another user.
+	// May only be used by administrators.
 	userId: string;
 }
 
-export interface GetBlockedPatternsResponse {
-	blockedPatterns: string[];
+export interface GetBlocklistResponse {
+	patterns: string[];
 }
 
-export interface SetBlockedPatternsRequest {
+export interface SetBlocklistRequest {
+	// Only specified when setting the blocklist of another user.
+	// May only be used by administrators.
 	userId: string;
-	blockedPatterns: string[];
+	patterns: string[];
 }
 
 export interface GetProfileResponse {

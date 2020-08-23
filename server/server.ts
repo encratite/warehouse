@@ -193,8 +193,8 @@ export class Server {
 		this.addRoute(route.createSubscription, this.createSubscription.bind(this));
 		this.addRoute(route.editSubscription, this.editSubscription.bind(this));
 		this.addRoute(route.deleteSubscription, this.deleteSubscription.bind(this));
-		this.addRoute(route.getBlockedPatterns, this.getBlockedPatterns.bind(this));
-		this.addRoute(route.setBlockedPatterns, this.setBlockedPatterns.bind(this));
+		this.addRoute(route.getBlocklist, this.getBlocklist.bind(this));
+		this.addRoute(route.setBlocklist, this.setBlocklist.bind(this));
 		this.addRoute(route.getProfile, this.getProfile.bind(this));
 		this.addRoute(route.changePassword, this.changePassword.bind(this));
 	}
@@ -485,18 +485,54 @@ export class Server {
 		response.send({});
 	}
 
-	async getBlockedPatterns(request: SessionRequest, response: express.Response) {
-		const getBlockedPatternsRequest = <common.GetBlockedPatternsRequest>request.body;
-		validate.stringLimit('userId', getBlockedPatternsRequest.userId, true)
+	async getBlocklist(request: SessionRequest, response: express.Response) {
+		const getBlocklistRequest = <common.GetBlocklistRequest>request.body;
+		validate.stringLimit('userId', getBlocklistRequest.userId, true)
 
-		this.notImplemented();
+		let userId = request.user.id;
+		// Only admins may retrieve the blocklists of other users.
+		if (getBlocklistRequest.userId != null) {
+			this.adminCheck(request);
+			userId = mongoose.Types.ObjectId(getBlocklistRequest.userId);
+		}
+		let patterns = [];
+		const blocklist = await this.database.blocklists.findOne({
+			userId: userId
+		});
+		if (blocklist != null) {
+			patterns = blocklist.patterns;
+		}
+		const getBlocklistResponse: common.GetBlocklistResponse = {
+			patterns: patterns
+		};
+		response.send(getBlocklistResponse);
 	}
 
-	async setBlockedPatterns(request: SessionRequest, response: express.Response) {
-		const setBlockedPatternsRequest = <common.SetBlockedPatternsRequest>request.body;
-		validate.stringLimit('userId', setBlockedPatternsRequest.userId, true)
+	async setBlocklist(request: SessionRequest, response: express.Response) {
+		const setBlocklistRequest = <common.SetBlocklistRequest>request.body;
+		validate.stringLimit('userId', setBlocklistRequest.userId, true)
+		validate.array('patterns', setBlocklistRequest.patterns, false, true);
+		setBlocklistRequest.patterns.forEach(pattern => {
+			validate.stringLimit('patterns[i]', pattern, false);
+		});
 
-		this.notImplemented();
+		let userId = request.user.id;
+		// Only admins may modify the blocklists of other users.
+		if (setBlocklistRequest.userId != null) {
+			this.adminCheck(request);
+			userId = mongoose.Types.ObjectId(setBlocklistRequest.userId);
+		}
+		let blocklist = await this.database.blocklists.findOne({
+			userId: userId
+		});
+		if (blocklist != null) {
+			blocklist.patterns = setBlocklistRequest.patterns;
+		}
+		else {
+			blocklist = this.database.newBlocklist(userId, setBlocklistRequest.patterns);
+		}
+		await blocklist.save();
+		response.send({});
 	}
 
 	async getProfile(request: SessionRequest, response: express.Response) {

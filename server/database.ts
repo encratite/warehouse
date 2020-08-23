@@ -27,9 +27,9 @@ export interface Subscription extends mongoose.Document {
 	lastMatch: Date;
 }
 
-export interface BlockedPatterns extends mongoose.Document {
+export interface Blocklist extends mongoose.Document {
 	userId: mongoose.Types.ObjectId;
-	blockedPatterns: string[];
+	patterns: string[];
 }
 
 export interface Download extends mongoose.Document {
@@ -43,6 +43,7 @@ export interface Download extends mongoose.Document {
 const userModelName = 'user';
 const sessionModelName = 'session';
 const subscriptionModelName = 'subscription';
+const blocklistModelName = 'blocklist';
 const downloadModelName = 'download';
 
 const userSchema = new mongoose.Schema({
@@ -135,14 +136,15 @@ const subscriptionSchema = new mongoose.Schema({
 	}
 });
 
-const blockedPatternsSchema = new mongoose.Schema({
+const blocklistSchema = new mongoose.Schema({
 	userId: {
 		type: mongoose.Schema.Types.ObjectId,
 		ref: userModelName,
 		required: true,
-		index: true
+		index: true,
+		unique: true
 	},
-	blockedPatterns: {
+	patterns: {
 		type: [String],
 		required: true
 	}
@@ -179,7 +181,7 @@ export class Database {
 	user: mongoose.Model<User>;
 	session: mongoose.Model<Session>;
 	subscription: mongoose.Model<Subscription>;
-	blockedPatterns: mongoose.Model<BlockedPatterns>;
+	blocklists: mongoose.Model<Blocklist>;
 	download: mongoose.Model<Download>;
 
 	async connect(uri: string) {
@@ -204,6 +206,7 @@ export class Database {
 		this.user = this.connection.model<User>(userModelName, userSchema);
 		this.session = this.connection.model<Session>(sessionModelName, sessionSchema);
 		this.subscription = this.connection.model<Subscription>(subscriptionModelName, subscriptionSchema);
+		this.blocklists = this.connection.model<Blocklist>(blocklistModelName, blocklistSchema);
 		this.download = this.connection.model<Download>(downloadModelName, downloadSchema);
 	}
 
@@ -237,10 +240,10 @@ export class Database {
 		});
 	}
 
-	newBlockedPatterns(userId: mongoose.Types.ObjectId, blockedPatterns: string[]): BlockedPatterns {
-		return new this.blockedPatterns({
+	newBlocklist(userId: mongoose.Types.ObjectId, patterns: string[]): Blocklist {
+		return new this.blocklists({
 			userId: userId,
-			blockedPatterns: blockedPatterns
+			patterns: patterns
 		});
 	}
 

@@ -62,6 +62,15 @@ export async function deleteSubscription(request: common.DeleteSubscriptionReque
 	await performRequest<void>(route.deleteSubscription, request);
 }
 
+export async function getBlocklist(request: common.GetBlocklistRequest): Promise<common.GetBlocklistResponse> {
+	const response = await performRequest<common.GetBlocklistResponse>(route.getBlocklist, request);
+	return response;
+}
+
+export async function setBlocklist(request: common.SetBlocklistRequest) {
+	await performRequest<void>(route.setBlocklist, request);
+}
+
 export async function getProfile(): Promise<common.GetProfileResponse> {
 	const request = {};
 	const response = await performRequest<common.GetProfileResponse>(route.getProfile, request);
