@@ -129,9 +129,8 @@ export class Client {
 	}
 
 	initializeSubscriptions() {
-		const subscriptions = <HTMLDivElement>document.getElementById('subscriptions');
-		const showCreateSubscriptionButton = subscriptions.querySelector<HTMLButtonElement>('button');
-		showCreateSubscriptionButton.onclick = this.onShowCreateSubscriptionButtonClick.bind(this);
+		this.setClickHandler('showCreateSubscriptionButton', this.onShowCreateSubscriptionButtonClick.bind(this));
+		this.setClickHandler('showBlocklistButton', this.onShowBlocklistButtonClick.bind(this));
 
 		const createOrEditSubscription = <HTMLDivElement>document.getElementById('createOrEditSubscription');
 		const radioButtons = createOrEditSubscription.querySelectorAll<HTMLInputElement>('input[type="radio"]');
@@ -139,14 +138,10 @@ export class Client {
 			radioButton.onclick = this.onSubscriptionRadioButtonClick.bind(this);
 		});
 
-		const createSubscriptionButton = <HTMLInputElement>document.getElementById('createSubscriptionButton');
-		createSubscriptionButton.onclick = this.onCreateSubscriptionClick.bind(this);
-
-		const editSubscriptionButton = <HTMLInputElement>document.getElementById('editSubscriptionButton');
-		editSubscriptionButton.onclick = this.onEditSubscriptionClick.bind(this);
-
-		const deleteSubscriptionButton = <HTMLInputElement>document.getElementById('deleteSubscriptionButton');
-		deleteSubscriptionButton.onclick = this.onDeleteSubscriptionClick.bind(this);
+		this.setClickHandler('createSubscriptionButton', this.onCreateSubscriptionClick.bind(this));
+		this.setClickHandler('editSubscriptionButton', this.onEditSubscriptionClick.bind(this));
+		this.setClickHandler('deleteSubscriptionButton', this.onDeleteSubscriptionClick.bind(this));
+		this.setClickHandler('subscriptionCancelButton', this.onSubscriptionCancelButtonClick.bind(this));
 	}
 
 	async setBusy(action: () => Promise<void>) {
@@ -228,6 +223,10 @@ export class Client {
 		this.showCreateOrEditSubscription();
 	}
 
+	async onShowBlocklistButtonClick(e: MouseEvent) {
+		this.showBlocklist();
+	}
+
 	onSubscriptionRadioButtonClick(e: MouseEvent) {
 		const createCategoryRadio = <HTMLInputElement>document.getElementById('createCategoryRadio');
 		const createCategoryName = <HTMLInputElement>document.getElementById('createCategoryName');
@@ -251,6 +250,10 @@ export class Client {
 			subscriptionId: this.editSubscription.id
 		};
 		await api.deleteSubscription(deleteSubscriptionRequest);
+		await this.showSubscriptions();
+	}
+
+	async onSubscriptionCancelButtonClick(e: MouseEvent) {
 		await this.showSubscriptions();
 	}
 
@@ -702,6 +705,10 @@ export class Client {
 			showEditButton(false);
 		}
 		this.editSubscription = subscription;
+	}
+
+	showBlocklist() {
+		this.notImplemented();
 	}
 
 	setSubscriptionCategories(subscriptions: common.Subscription[]) {

@@ -356,8 +356,9 @@ span.link {
 #subscriptions {
 	button {
 		float: right;
+		margin-left: 0.5em;
 		margin-bottom: 2em;
-		width: 14.5em;
+		width: 13em;
 	}
 
 	td:nth-child(3) {
@@ -385,11 +386,15 @@ span.link {
 
 	#editSubscriptionButton {
 		display: none;
-		margin-right: 1em;
+		margin-right: 0.5em;
 	}
 
 	#deleteSubscriptionButton {
 		display: none;
+	}
+
+	#subscriptionCancelButton {
+		margin-left: 0.5em;
 	}
 
 	table {
@@ -430,7 +435,7 @@ span.link {
 	}
 
 	button {
-		width: 14.5em;
+		width: 9.65em;
 		float: left;
 	}
 
